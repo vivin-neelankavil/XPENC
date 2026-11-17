@@ -238,18 +238,6 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           subtitle: tr('Currency · theme · notifications'),
         ),
         _Item(
-          Icons.auto_awesome_outlined,
-          tr("What's new"),
-          route: '/more/whats-new',
-          subtitle: tr('See what shipped in {0}', [AppInfo.version]),
-        ),
-        _Item(
-          Icons.menu_book_outlined,
-          tr('Guide'),
-          route: '/more/guide',
-          subtitle: tr('Every feature explained, plus Basic/Medium/Pro'),
-        ),
-        _Item(
           Icons.info_outline_rounded,
           'About ${AppInfo.name}',
           route: '/more/about',

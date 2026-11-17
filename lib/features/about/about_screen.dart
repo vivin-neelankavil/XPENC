@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../core/branding/app_info.dart';
@@ -81,6 +82,27 @@ class AboutScreen extends StatelessWidget {
                     height: 1.5,
                   ),
                 ),
+              ),
+            ),
+
+            _sectionLabel(context, tr('Discover')),
+            AppCard(
+              child: Column(
+                children: [
+                  _LinkTile(
+                    icon: Icons.auto_awesome_outlined,
+                    label: tr("What's new"),
+                    value: tr('See what shipped in {0}', [AppInfo.version]),
+                    onTap: () => context.push('/more/whats-new'),
+                  ),
+                  Divider(height: 1, indent: 60, color: cs.outline),
+                  _LinkTile(
+                    icon: Icons.menu_book_outlined,
+                    label: tr('Guide'),
+                    value: tr('Every feature explained, plus Basic/Medium/Pro'),
+                    onTap: () => context.push('/more/guide'),
+                  ),
+                ],
               ),
             ),
 

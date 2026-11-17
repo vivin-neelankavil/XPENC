@@ -278,4 +278,20 @@ const kSearchableSettingsIndex = <SearchableSetting>[
     route: '/more/export',
     keywords: ['import', 'restore', 'json', 'csv', 'file', 'upload'],
   ),
+  SearchableSetting(
+    title: "What's new",
+    subtitle: 'See what shipped in the latest release',
+    category: 'About XPENC',
+    icon: Icons.auto_awesome_outlined,
+    route: '/more/whats-new',
+    keywords: ['whats new', 'changelog', 'release notes', 'update', 'version', 'features'],
+  ),
+  SearchableSetting(
+    title: 'Guide',
+    subtitle: 'Every feature explained, plus Basic/Medium/Pro modes',
+    category: 'About XPENC',
+    icon: Icons.menu_book_outlined,
+    route: '/more/guide',
+    keywords: ['guide', 'help', 'tutorial', 'documentation', 'manual', 'explain', 'modes'],
+  ),
 ];
