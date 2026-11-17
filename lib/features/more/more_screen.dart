@@ -269,32 +269,6 @@ class MoreScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           const TopBarInsetSliver(),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 20, 0),
-              child: Row(
-                children: [
-                  Text(
-                    tr('More'),
-                    style: theme.textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    icon: Icon(searchActive ? Icons.close : Icons.search),
-                    onPressed: () {
-                      final active = ref.read(moreSearchActiveProvider);
-                      ref.read(moreSearchActiveProvider.notifier).state = !active;
-                      if (active) {
-                        ref.read(moreSearchQueryProvider.notifier).state = '';
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ),
           if (searchActive)
             SliverToBoxAdapter(
               child: Padding(

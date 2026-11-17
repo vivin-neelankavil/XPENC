@@ -1492,7 +1492,22 @@ class _TopBar extends ConsumerWidget implements PreferredSizeWidget {
           ),
           const SizedBox(width: 4),
         ];
-      default: // More, Budgets, Accounts, Stats, Payees — no tab-specific
+      case 3: // More
+        final active = ref.watch(moreSearchActiveProvider);
+        return [
+          _TonalIconButton(
+            tooltip: active ? tr('Close search') : tr('Search'),
+            icon: AppIcon(active ? Icons.close : Icons.search),
+            onPressed: () {
+              ref.read(moreSearchActiveProvider.notifier).state = !active;
+              if (active) {
+                ref.read(moreSearchQueryProvider.notifier).state = '';
+              }
+            },
+          ),
+          const SizedBox(width: 4),
+        ];
+      default: // Budgets, Accounts, Stats, Payees — no tab-specific
         // action yet (Budgets/Stats keep their PDF-download action reachable
         // only via /more/budgets · /more/stats for now; Accounts similarly
         // keeps Statement/Archived/Add reachable only via /more/accounts —
