@@ -214,24 +214,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   : tr('Hold ➕ shortcuts'),
               onTap: () => context.push('/more/settings/quick-actions'),
             ),
-          ]),
-          _ModuleGroup([
-            _ModuleTile(
-              icon: Icons.download_outlined,
-              title: tr('Download Data'),
-              subtitle: tr('Export CSV / JSON'),
-              onTap: () => context.push('/more/export'),
-            ),
-            _ModuleTile(
-              icon: Icons.backup_outlined,
-              title: tr('Backup & Restore'),
-              subtitle: tr('Back up, import & move to a new phone'),
-              onTap: () => context.push('/more/backup'),
-            ),
             _ModuleTile(
               icon: Icons.storage_outlined,
               title: tr('Data'),
-              subtitle: tr('Recalculate balances, clear all data'),
+              subtitle: tr('Download data, backup & restore, recalculate balances'),
               onTap: () => context.push('/more/settings/data'),
             ),
             // XPENC web only; phones have the Connector app.
