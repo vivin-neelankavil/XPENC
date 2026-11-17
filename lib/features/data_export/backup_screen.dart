@@ -614,20 +614,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               children: [
                 Icon(Icons.cloud_sync_outlined, size: 20, color: cs.primary),
                 const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Cloud Sync (Multi-Device)',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: cs.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                  tooltip: 'Open in standalone screen',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const CloudSyncScreen()),
+                Text(
+                  'Cloud Sync (Multi-Device)',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: cs.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
