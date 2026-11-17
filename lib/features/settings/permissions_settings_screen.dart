@@ -146,6 +146,15 @@ class _PermissionsSettingsScreenState
             child: Column(
               children: [
                 _InfoTile(
+                  icon: Icons.language_rounded,
+                  title: tr('Internet'),
+                  subtitle: tr(
+                    'Used only for optional cloud sync (Google Drive, GitHub) '
+                    'and community bank rules updates. Your data is never sent to third parties.',
+                  ),
+                ),
+                Divider(height: 1, color: cs.outline),
+                _InfoTile(
                   icon: Icons.restart_alt_rounded,
                   title: tr('Run at startup'),
                   subtitle:
@@ -166,23 +175,24 @@ class _PermissionsSettingsScreenState
             child: Column(
               children: [
                 _InfoTile(
-                  icon: Icons.wifi_off_rounded,
-                  title: tr('Internet'),
-                  subtitle: tr('XPENC cannot connect to the internet — your '
-                      'data never leaves this device'),
-                ),
-                Divider(height: 1, color: cs.outline),
-                _InfoTile(
-                  icon: Icons.sms_outlined,
-                  title: 'SMS',
-                  subtitle: tr('Bank messages come in only when you share one '
-                      'to XPENC'),
+                  icon: Icons.sms_failed_outlined,
+                  title: tr('SMS inbox'),
+                  subtitle: tr(
+                    'XPENC never reads your private SMS inbox. Bank messages '
+                    'are parsed only when you share or paste them into XPENC.',
+                  ),
                 ),
                 Divider(height: 1, color: cs.outline),
                 _InfoTile(
                   icon: Icons.location_off_outlined,
                   title: tr('Location, microphone, phone'),
                   subtitle: tr('Not used for anything'),
+                ),
+                Divider(height: 1, color: cs.outline),
+                _InfoTile(
+                  icon: Icons.block_outlined,
+                  title: tr('Advertising ID & analytics'),
+                  subtitle: tr('No ads, no trackers, and no third-party telemetry'),
                 ),
               ],
             ),
