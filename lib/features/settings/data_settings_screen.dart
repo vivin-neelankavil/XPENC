@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/platform/platform_features.dart';
 import '../../core/widgets/app_surfaces.dart';
@@ -26,6 +27,40 @@ class DataSettingsScreen extends ConsumerWidget {
           32 + MediaQuery.of(context).padding.bottom,
         ),
         children: [
+          AppCard(
+            child: Column(
+              children: [
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const AppIcon(Icons.download_outlined),
+                  title: const Tr('Download Data'),
+                  subtitle: Tr(
+                    'Export transactions to CSV or full JSON database copy',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                  trailing: const AppIcon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/more/export'),
+                ),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const AppIcon(Icons.backup_outlined),
+                  title: const Tr('Backup & Restore'),
+                  subtitle: Tr(
+                    'Back up, import & sync across your devices',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodySmall?.copyWith(color: cs.onSurfaceVariant),
+                  ),
+                  trailing: const AppIcon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/more/backup'),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           AppCard(
             child: Column(
               children: [

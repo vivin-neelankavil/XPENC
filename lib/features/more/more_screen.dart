@@ -200,22 +200,6 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             module: 'calculators',
           ),
       ]),
-      _Group(tr('Data'), [
-        _Item(
-          Icons.download_outlined,
-          tr('Download Data'),
-          route: '/more/export',
-          subtitle: tr('Export CSV / JSON'),
-          module: 'data',
-        ),
-        _Item(
-          Icons.backup_outlined,
-          tr('Backup & Restore'),
-          route: '/more/backup',
-          subtitle: tr('Back up, import & move to a new phone'),
-          module: 'data',
-        ),
-      ]),
       _Group(tr('Setup'), [
         _Item(
           Icons.category_outlined,
