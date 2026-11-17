@@ -23,8 +23,21 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _searchActive = false;
+  bool _searchActive = true;
   String _searchQuery = '';
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +59,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () {
               setState(() {
                 _searchActive = !_searchActive;
-                if (!_searchActive) _searchQuery = '';
+                if (!_searchActive) {
+                  _controller.clear();
+                  _searchQuery = '';
+                }
               });
             },
           ),
@@ -65,7 +81,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Padding(
               padding: const EdgeInsets.only(bottom: 14),
               child: TextField(
-                autofocus: true,
+                controller: _controller,
+                autofocus: false,
                 decoration: InputDecoration(
                   hintText: tr('Search settings & options...'),
                   prefixIcon: const Icon(Icons.search),
@@ -73,6 +90,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ? IconButton(
                           icon: const Icon(Icons.clear),
                           onPressed: () {
+                            _controller.clear();
                             setState(() => _searchQuery = '');
                           },
                         )

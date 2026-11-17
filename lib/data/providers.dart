@@ -2361,7 +2361,7 @@ final cloudSyncServiceProvider = Provider<CloudSyncService>(
   (ref) => CloudSyncService(ref.watch(dbProvider), ref.watch(sharedPrefsProvider)),
 );
 
-final moreSearchActiveProvider = StateProvider<bool>((ref) => false);
+final moreSearchActiveProvider = StateProvider<bool>((ref) => true);
 final moreSearchQueryProvider = StateProvider<String>((ref) => '');
 
 /// The live list of known backups. Reads `AppDatabase.watchBackupRecords`

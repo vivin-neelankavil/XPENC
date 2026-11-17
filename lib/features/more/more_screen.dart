@@ -18,11 +18,38 @@ import '../../core/l10n/l10n.dart';
 import 'settings_search_index.dart';
 
 /// Hub page. Grouped, not a flat dump. Every tile navigates to a real route.
-class MoreScreen extends ConsumerWidget {
+class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MoreScreen> createState() => _MoreScreenState();
+}
+
+class _MoreScreenState extends ConsumerState<MoreScreen> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController(
+      text: ref.read(moreSearchQueryProvider),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<String>(moreSearchQueryProvider, (_, next) {
+      if (_searchController.text != next) {
+        _searchController.text = next;
+      }
+    });
+
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
 
@@ -305,7 +332,8 @@ class MoreScreen extends ConsumerWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: TextField(
-                  autofocus: true,
+                  controller: _searchController,
+                  autofocus: false,
                   decoration: InputDecoration(
                     hintText: tr('Search settings & tools...'),
                     prefixIcon: const Icon(Icons.search),
@@ -313,6 +341,7 @@ class MoreScreen extends ConsumerWidget {
                         ? IconButton(
                             icon: const Icon(Icons.clear),
                             onPressed: () {
+                              _searchController.clear();
                               ref.read(moreSearchQueryProvider.notifier).state = '';
                             },
                           )
