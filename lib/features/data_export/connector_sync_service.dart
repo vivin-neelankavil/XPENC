@@ -69,6 +69,11 @@ class GitHubSyncService {
     }
 
     if (getResponse.statusCode == 404) {
+      if (forcePull) {
+        throw const ConnectorSyncException(
+          'No sync backup file found in repository.',
+        );
+      }
       // Remote file does not exist yet. Create it with our local snapshot.
       await _pushToRepo(
         repo: cleanRepo,

@@ -115,8 +115,11 @@ class GDriveSyncService {
       final existingFileId =
           await _findFileInFolder(api, folderId, driveSyncFileName);
 
-      // If no file exists in Drive yet, create it by uploading local data.
+      // If no file exists in Drive yet, create it by uploading local data (unless forcePull).
       if (existingFileId == null) {
+        if (forcePull) {
+          throw const GDriveSyncException('No sync data found on Google Drive.');
+        }
         await _uploadLocalSnapshot(api, folderId, null);
         return CloudSyncResult(
           type: SyncResultType.uploaded,

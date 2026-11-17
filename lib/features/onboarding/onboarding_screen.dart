@@ -17,6 +17,7 @@ import '../data_export/backup_service.dart'
     show BackupService;
 import '../data_export/backup_folder.dart';
 import '../../core/widgets/nav_bar_inset.dart';
+import 'cloud_restore_sheet.dart';
 import 'country_step.dart';
 import '../../core/l10n/l10n.dart';
 
@@ -93,6 +94,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           // Not [_skipToEnd]: skipping the restore still needs a currency.
           onSkip: _next,
           onRestore: _restoreFromDevice,
+          onRestoreFromCloud: _restoreFromCloud,
           restoring: _restoring,
         ),
         _countryStep(),
@@ -265,6 +267,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(tr("Couldn't restore: {0}", [e]))));
     }
+  }
+
+  Future<void> _restoreFromCloud() async {
+    await CloudRestoreSheet.show(context);
   }
 
   /// XPENC web has no folder to look in: the backup is a file the user
@@ -522,7 +528,7 @@ class _PathChoiceStep extends StatelessWidget {
           _ChoiceCard(
             icon: Icons.check_circle_outline_rounded,
             title: tr('I already know XPENC'),
-            subtitle: tr('Skip the tour, and restore a backup if I have one.'),
+            subtitle: tr('Skip the tour, and restore a backup from device or cloud.'),
             onTap: () => onChoose(_UserPath.oldUser),
           ),
         ],
@@ -922,11 +928,13 @@ class _RestoreStep extends StatelessWidget {
   const _RestoreStep({
     required this.onSkip,
     required this.onRestore,
+    required this.onRestoreFromCloud,
     required this.restoring,
   });
 
   final VoidCallback onSkip;
   final VoidCallback onRestore;
+  final VoidCallback onRestoreFromCloud;
   final bool restoring;
 
   @override
@@ -938,11 +946,16 @@ class _RestoreStep extends StatelessWidget {
       subtitle: PlatformFeatures.isWeb
           ? tr('If you have an XPENC backup file, restore it now — or skip and '
                 'start fresh.')
-          : tr('If you have an XPENC backup on this phone, restore it now — or '
+          : tr('If you have an XPENC backup on this phone or in the cloud, restore it now — or '
                 'skip and start fresh.'),
       rows: [
         _FeatureRow(
-          icon: Icons.cloud_download_outlined,
+          icon: Icons.cloud_outlined,
+          color: cs.primary,
+          text: tr('Restore your data directly from Google Drive or GitHub cloud sync.'),
+        ),
+        _FeatureRow(
+          icon: Icons.phone_android_rounded,
           color: cs.primary,
           text: PlatformFeatures.isWeb
               ? tr('Pick the backup file your phone made, or one this browser '
@@ -957,19 +970,33 @@ class _RestoreStep extends StatelessWidget {
           text: tr('You can always restore later from Settings instead.'),
         ),
       ],
-      trailing: SizedBox(
-        width: double.infinity,
-        child: FilledButton.icon(
-          onPressed: restoring ? null : onRestore,
-          icon: restoring
-              ? const SizedBox(
-                  height: 18,
-                  width: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2.4),
-                )
-              : const AppIcon(Icons.restore_rounded),
-          label: Text(restoring ? tr('Restoring…') : tr('Restore my data')),
-        ),
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: restoring ? null : onRestoreFromCloud,
+              icon: const AppIcon(Icons.cloud_download_outlined),
+              label: Text(tr('Restore from cloud')),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: restoring ? null : onRestore,
+              icon: restoring
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2.4),
+                    )
+                  : const AppIcon(Icons.phone_android_rounded),
+              label: Text(restoring ? tr('Restoring…') : tr('Restore from this device')),
+            ),
+          ),
+        ],
       ),
     );
   }
