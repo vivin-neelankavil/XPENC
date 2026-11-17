@@ -10,6 +10,7 @@ import 'core/l10n/pack_store.dart';
 import 'core/theme/glass.dart';
 import 'data/providers.dart';
 import 'features/connector/connector_controller.dart';
+import 'features/message_capture/parser/sms_rules.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,11 @@ Future<void> main() async {
   // opens in (GitHub #191).
   await LanguagePackStore.loadAll().timeout(
     const Duration(seconds: 2),
+    onTimeout: () {},
+  );
+  // Bank sender rules and SMS parsing regexes loaded from open-source JSON asset
+  await SmsRulesConfig.load().timeout(
+    const Duration(seconds: 1),
     onTimeout: () {},
   );
   final prefs = await SharedPreferences.getInstance();

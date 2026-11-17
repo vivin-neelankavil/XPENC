@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "description": "XPENC Bank Sender Rules and SMS Parsing Regexes. Community contributions and pull requests welcome!",
+  "bankSenderRules": [
+    { "pattern": "IPPB", "bank": "India Post Payments Bank" },
+    { "pattern": "IPPBNK", "bank": "India Post Payments Bank" },
+    { "pattern": "YESBNK", "bank": "Yes Bank" },
+    { "pattern": "HDFCBK", "bank": "HDFC Bank" },
+    { "pattern": "ICICIB", "bank": "ICICI Bank" },
+    { "pattern": "SBIINB", "bank": "State Bank of India" },
+    { "pattern": "SBIUPI", "bank": "State Bank of India" },
+    { "pattern": "AXISBK", "bank": "Axis Bank" },
+    { "pattern": "KOTAKB", "bank": "Kotak Mahindra Bank" },
+    { "pattern": "PNBSMS", "bank": "Punjab National Bank" }
+  ],
+  "parsingRules": {
+    "otpPattern": "\\b(otp|one[\\s-]?time[\\s-]?password|verification code|do not share)\\b",
+    "declinedPattern": "\\b(declined|failed|unsuccessful|not processed|could not be|rejected|reversal failed)\\b",
+    "promotionalPattern": "\\b(offer|cashback offer|sale|win |congratulations|click here|apply now|lowest price|discount|loan offer|pre-?approved|t&c apply|unsubscribe)\\b",
+    "debitPattern": "\\b(debited|debit|spent|withdrawn|withdrawal|paid|purchase|deducted|transferred to|sent to|dr\\b)",
+    "creditPattern": "\\b(credited|credit|received|deposited|refund(ed)?|reversed|added to|cr\\b)",
+    "amountPattern": "(?:rs\\.?|inr|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)",
+    "accountHintPattern": "(?:a/?c(?:count)?(?:\\s*no\\.?)?|card(?:\\s*(?:no\\.?|ending|xx))?)[\\s:.]*[xX*\\d]*?(\\d{4})\\b",
+    "availableBalancePattern": "(?:avl\\.?\\s*bal|available\\s*balance|a/?c\\s*bal|bal(?:ance)?)[\\s:.a-z]*?(?:rs\\.?|inr|₹)\\s*([0-9][0-9,]*(?:\\.[0-9]{1,2})?)",
+    "referencePattern": "(?:ref(?:erence)?(?:\\s*(?:no|id|num))?|txn(?:\\s*id)?|utr)[\\s.:#no]*([A-Za-z0-9]{6,20})",
+    "merchantPatterns": [
+      "\\bVPA\\s+([a-zA-Z0-9._-]+@[a-zA-Z]+)",
+      "\\btrf\\s+to\\s+([A-Za-z0-9 &._-]{3,40})",
+      "\\b(?:to|at)\\s+([A-Z][A-Za-z0-9 &._-]{2,40}?)\\s+on\\b",
+      "\\bat\\s+([A-Za-z0-9 &._-]{3,40}?)(?:\\s+on|\\.|,|$)",
+      "\\bto\\s+([A-Za-z0-9 &._-]{3,40}?)(?:\\s+on|\\.|,|$)",
+      "\\binfo[:\\s]+([A-Za-z0-9 &._*-]{3,40})"
+    ]
+  }
+}

@@ -175,6 +175,8 @@ flutter:
     # Interface translations, English -> each language (GitHub #191);
     # built by tool/l10n/assemble.dart. English itself needs no table.
     - assets/l10n/
+    # Open-source Bank Sender Rules and SMS Parsing Regexes
+    - assets/message_capture/
 
   # The Glass theme's Liquid Glass lens (see lib/core/theme/glass.dart).
   shaders:
