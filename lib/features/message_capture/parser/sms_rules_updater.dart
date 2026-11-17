@@ -38,9 +38,13 @@ class SmsRulesUpdater {
   final AppDatabase _db;
   final SharedPreferences? _prefs;
 
-  /// The raw GitHub repository URL for the master definitions file.
-  static const String remoteUrl =
-      'https://raw.githubusercontent.com/PATILYASHH/XPENC/master/assets/message_capture/sms_rules.json';
+  /// Primary community repository URLs for definitions (checks working branch first, then upstream).
+  static const List<String> remoteUrls = [
+    'https://raw.githubusercontent.com/vivin-neelankavil/XPENC/private/vivin-neelankavil/add_gdrive_sync/assets/message_capture/sms_rules.json',
+    'https://raw.githubusercontent.com/PATILYASHH/XPENC/master/assets/message_capture/sms_rules.json',
+  ];
+
+  static String get remoteUrl => remoteUrls.first;
 
   static const String keyLastCheckedAt = 'sms_rules_last_checked_at';
   static const String keyLastUpdatedAt = 'sms_rules_last_updated_at';
@@ -66,18 +70,30 @@ class SmsRulesUpdater {
   Future<SmsRulesUpdateResult> checkForUpdates({http.Client? client}) async {
     final httpClient = client ?? http.Client();
     try {
-      final response = await httpClient
-          .get(
-            Uri.parse(remoteUrl),
-            headers: {'Accept': 'application/json', 'User-Agent': 'XPENC-App'},
-          )
-          .timeout(const Duration(seconds: 12));
+      http.Response? response;
+      for (final url in remoteUrls) {
+        try {
+          final res = await httpClient
+              .get(
+                Uri.parse(url),
+                headers: {'Accept': 'application/json', 'User-Agent': 'XPENC-App'},
+              )
+              .timeout(const Duration(seconds: 12));
+          if (res.statusCode == 200) {
+            response = res;
+            break;
+          }
+          response ??= res;
+        } catch (_) {
+          continue;
+        }
+      }
 
-      if (response.statusCode != 200) {
+      if (response == null || response.statusCode != 200) {
         return SmsRulesUpdateResult(
           updated: false,
           isError: true,
-          message: 'Server returned HTTP ${response.statusCode}',
+          message: 'Server returned HTTP ${response?.statusCode ?? 404}',
         );
       }
 

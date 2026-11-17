@@ -15,6 +15,7 @@ import '../modes/mode_modules.dart';
 import '../modes/mode_widgets.dart';
 import '../../core/widgets/nav_bar_inset.dart';
 import '../../core/l10n/l10n.dart';
+import 'settings_search_index.dart';
 
 /// Hub page. Grouped, not a flat dump. Every tile navigates to a real route.
 class MoreScreen extends ConsumerWidget {
@@ -241,9 +242,10 @@ class MoreScreen extends ConsumerWidget {
     ].where((g) => g.items.isNotEmpty).toList();
 
     final searchActive = ref.watch(moreSearchActiveProvider);
-    final searchQuery = ref.watch(moreSearchQueryProvider).trim().toLowerCase();
+    final rawSearchQuery = ref.watch(moreSearchQueryProvider).trim();
+    final searchQuery = rawSearchQuery.toLowerCase();
 
-    final filteredGroups = [
+    final baseFiltered = [
       for (final g in groups) ...[
         if (!searchActive || searchQuery.isEmpty)
           g
@@ -261,6 +263,35 @@ class MoreScreen extends ConsumerWidget {
         ],
       ],
     ].where((g) => g.items.isNotEmpty).toList();
+
+    final List<_Group> filteredGroups;
+    if (searchActive && searchQuery.isNotEmpty) {
+      final existingRoutes = {
+        for (final g in baseFiltered)
+          for (final i in g.items) i.route,
+      };
+
+      final nestedMatches = kSearchableSettingsIndex
+          .where((s) => s.matches(searchQuery))
+          .where((s) => !existingRoutes.contains(s.route) || s.category.contains('Settings'))
+          .map(
+            (s) => _Item(
+              s.icon,
+              s.title,
+              route: s.route,
+              subtitle: '${s.category} · ${s.subtitle}',
+            ),
+          )
+          .toList();
+
+      filteredGroups = [
+        ...baseFiltered,
+        if (nestedMatches.isNotEmpty)
+          _Group(tr('Settings & Deeper Tools'), nestedMatches),
+      ];
+    } else {
+      filteredGroups = baseFiltered;
+    }
 
     final viewMode = ref.watch(moreScreenViewModeProvider);
     final isCards = viewMode == MoreScreenViewMode.cards;

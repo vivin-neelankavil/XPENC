@@ -9,18 +9,49 @@ import '../../core/platform/platform_features.dart';
 import '../../core/widgets/app_surfaces.dart';
 import '../../core/widgets/open_link.dart';
 import '../../core/l10n/l10n.dart';
+import '../more/settings_search_index.dart';
 
 /// Settings' front door — a menu of modules, each its own page. Splitting it
 /// this way (instead of one long scrolling list of every toggle) keeps each
 /// page short enough to scan and keeps this menu itself from growing every
 /// time a new setting is added.
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
   @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  bool _searchActive = false;
+  String _searchQuery = '';
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final query = _searchQuery.trim().toLowerCase();
+
+    final searchResults = _searchActive && query.isNotEmpty
+        ? kSearchableSettingsIndex.where((s) => s.matches(query)).toList()
+        : const <SearchableSetting>[];
+
     return Scaffold(
-      appBar: AppTopBar(title: const Tr('Settings')),
+      appBar: AppTopBar(
+        title: const Tr('Settings'),
+        actions: [
+          IconButton(
+            icon: Icon(_searchActive ? Icons.close : Icons.search),
+            tooltip: _searchActive ? tr('Close search') : tr('Search settings'),
+            onPressed: () {
+              setState(() {
+                _searchActive = !_searchActive;
+                if (!_searchActive) _searchQuery = '';
+              });
+            },
+          ),
+        ],
+      ),
       body: ListView(
         // Explicit padding drops ListView's nav-bar inset; re-add it (#137).
         padding: EdgeInsets.fromLTRB(
@@ -29,9 +60,79 @@ class SettingsScreen extends StatelessWidget {
           20,
           32 + MediaQuery.of(context).padding.bottom,
         ),
-        // Grouped the way iOS Settings (and the More hub) are: related
-        // modules share one card, split by inset hairlines.
         children: [
+          if (_searchActive) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: TextField(
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: tr('Search settings & options...'),
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+                onChanged: (val) {
+                  setState(() => _searchQuery = val);
+                },
+              ),
+            ),
+          ],
+          if (_searchActive && query.isNotEmpty) ...[
+            if (searchResults.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 36),
+                child: Center(
+                  child: Text(
+                    tr('No matching settings found'),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              )
+            else
+              AppCard(
+                child: Column(
+                  children: [
+                    for (var i = 0; i < searchResults.length; i++) ...[
+                      if (i > 0)
+                        Divider(
+                          height: 1,
+                          thickness: 1,
+                          indent: 60,
+                          color: cs.outlineVariant.withValues(alpha: 0.5),
+                        ),
+                      AppListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                        leading: AppIcon(searchResults[i].icon),
+                        title: Text(searchResults[i].title),
+                        subtitle: Text(
+                          '${searchResults[i].category} · ${searchResults[i].subtitle}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: cs.onSurfaceVariant,
+                          ),
+                        ),
+                        trailing: const AppIcon(Icons.chevron_right_rounded),
+                        onTap: () => context.push(searchResults[i].route),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+          ] else ...[
           // First, and named in its own script, so someone who can't read
           // the language showing still finds the way back (GitHub #191).
           _ModuleGroup([
@@ -132,8 +233,9 @@ class SettingsScreen extends StatelessWidget {
           const SizedBox(height: 20),
           const _MoreFromUs(),
         ],
-      ),
-    );
+      ],
+    ),
+  );
   }
 }
 
