@@ -25,12 +25,13 @@ void main() {
       ),
     };
 
-    // XPENC web's built-in Connector and multi-device Cloud Sync (Google Drive
-    // and GitHub) — only reached when the user explicitly configures cloud sync.
+    // XPENC web's built-in Connector, multi-device Cloud Sync (Google Drive
+    // and GitHub), and user-initiated SMS definition updates from GitHub.
     final allowed = {
       'lib/core/connector/web/fetch_transport.dart',
       'lib/features/data_export/connector_sync_service.dart',
       'lib/features/data_export/gdrive_sync_service.dart',
+      'lib/features/message_capture/parser/sms_rules_updater.dart',
     };
 
     final offenders = <String>[];

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Bank short-code to bank name mapping rule.
 class BankSenderRule {
@@ -93,25 +94,51 @@ class SmsParsingRules {
   }
 }
 
-/// Container for all SMS rules loaded from `assets/message_capture/sms_rules.json`.
+/// Container for all SMS rules loaded from `assets/message_capture/sms_rules.json`
+/// or updated from GitHub.
 class SmsRulesConfig {
   const SmsRulesConfig({
+    required this.version,
     required this.bankSenderRules,
     required this.parsingRules,
   });
 
+  final int version;
   final List<BankSenderRule> bankSenderRules;
   final SmsParsingRules parsingRules;
 
   static const String assetPath = 'assets/message_capture/sms_rules.json';
+  static const String keyCachedJson = 'cached_sms_rules_json';
 
   static SmsRulesConfig? _active;
 
-  /// The active configuration. Defaults to [defaultConfig] if not yet loaded from asset.
+  /// The active configuration. Defaults to [defaultConfig] if not yet loaded.
   static SmsRulesConfig get active => _active ??= defaultConfig;
 
-  /// Loads configuration from [assetPath]. Falls back to [defaultConfig] on failure.
-  static Future<void> load([String path = assetPath]) async {
+  /// Sets the active configuration.
+  static void setActive(SmsRulesConfig config) {
+    _active = config;
+  }
+
+  /// Loads configuration. Checks cached update in [prefs] first, then falls back to [path],
+  /// and finally to [defaultConfig].
+  static Future<void> load({
+    SharedPreferences? prefs,
+    String path = assetPath,
+  }) async {
+    // 1. Check cached updates from GitHub
+    final cached = prefs?.getString(keyCachedJson);
+    if (cached != null) {
+      try {
+        final json = jsonDecode(cached) as Map<String, dynamic>;
+        _active = SmsRulesConfig.fromJson(json);
+        return;
+      } catch (e) {
+        debugPrint('SmsRulesConfig: cached JSON corrupted ($e), falling back to asset');
+      }
+    }
+
+    // 2. Load from bundled asset
     try {
       final raw = await rootBundle.loadString(path);
       final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -129,6 +156,7 @@ class SmsRulesConfig {
   }
 
   factory SmsRulesConfig.fromJson(Map<String, dynamic> json) {
+    final v = json['version'] as int? ?? 1;
     final bankList = (json['bankSenderRules'] as List<dynamic>? ?? [])
         .map((e) => BankSenderRule.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -136,6 +164,7 @@ class SmsRulesConfig {
       json['parsingRules'] as Map<String, dynamic>? ?? {},
     );
     return SmsRulesConfig(
+      version: v,
       bankSenderRules: bankList,
       parsingRules: parsing,
     );
@@ -143,6 +172,7 @@ class SmsRulesConfig {
 
   /// Bundled fallback configuration matching the initial rules.
   static final SmsRulesConfig defaultConfig = SmsRulesConfig(
+    version: 1,
     bankSenderRules: const [
       BankSenderRule(pattern: 'IPPB', bank: 'India Post Payments Bank'),
       BankSenderRule(pattern: 'IPPBNK', bank: 'India Post Payments Bank'),

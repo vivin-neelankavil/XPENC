@@ -38,12 +38,12 @@ Future<void> main() async {
     const Duration(seconds: 2),
     onTimeout: () {},
   );
-  // Bank sender rules and SMS parsing regexes loaded from open-source JSON asset
-  await SmsRulesConfig.load().timeout(
+  final prefs = await SharedPreferences.getInstance();
+  // Bank sender rules and SMS parsing regexes loaded from open-source JSON asset or cached update
+  await SmsRulesConfig.load(prefs: prefs).timeout(
     const Duration(seconds: 1),
     onTimeout: () {},
   );
-  final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
       overrides: [
