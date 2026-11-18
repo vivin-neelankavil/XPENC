@@ -474,8 +474,8 @@ class _CloudSyncOptionsState extends ConsumerState<CloudSyncOptions> {
             const SizedBox(height: 8),
 
             _ProviderOptionTile(
-              title: 'Disabled (Offline Only)',
-              subtitle: 'Data stays strictly local on this device only',
+              title: 'Disabled (Local Only)',
+              subtitle: 'Data stays on this device without cloud sync',
               icon: Icons.cloud_off_outlined,
               selected: syncService.provider == CloudSyncProvider.none,
               onTap: () async {

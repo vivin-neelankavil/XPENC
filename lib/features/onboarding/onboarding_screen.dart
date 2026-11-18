@@ -467,12 +467,12 @@ class _WelcomeStep extends StatelessWidget {
             text: PlatformFeatures.isWeb
                 ? tr('Open-source and private — everything stays in this '
                       'browser.')
-                : tr('Open-source and private — everything stays on this phone.'),
+                : tr('Open-source and private — your data stays under your control.'),
           ),
           _FeatureRow(
-            icon: Icons.wifi_off_rounded,
+            icon: Icons.cloud_done_outlined,
             color: cs.primary,
-            text: tr('Works fully offline. No account, no server, no ads.'),
+            text: tr('Offline-first with optional personal cloud backup. No ads, no tracking.'),
           ),
           _FeatureRow(
             icon: Icons.code_rounded,

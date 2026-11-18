@@ -1022,11 +1022,19 @@ void main() {
     await pump(tester, const MoreScreen());
     expect(tester.takeException(), isNull);
     expect(find.text('Modes'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Stats'), 240);
+    await tester.scrollUntilVisible(
+      find.text('Stats'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Stats'), findsOneWidget);
     // Sits below the fold at phone size — bring it into the viewport first.
-    await tester.scrollUntilVisible(find.text('Backup & Restore'), 240);
-    expect(find.text('Backup & Restore'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Tags'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Tags'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -1035,8 +1043,12 @@ void main() {
     await pump(tester, const MoreScreen());
     expect(tester.takeException(), isNull);
     expect(find.text('Stats'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Backup & Restore'), 240);
-    expect(find.text('Backup & Restore'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Tags'),
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Tags'), findsOneWidget);
     await unmount(tester);
   });
 
@@ -1258,13 +1270,14 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('XPENC'), findsOneWidget);
     expect(find.text('Version ${AppInfo.versionLabel}'), findsOneWidget);
+    // Store + share buttons under the version pill (Play production launch).
+    expect(find.text('Google Play'), findsOneWidget);
+    expect(find.text('Share XPENC'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('@${AppInfo.githubHandle}'), 240);
     expect(find.text('@${AppInfo.githubHandle}'), findsOneWidget);
     expect(find.text('/in/${AppInfo.linkedinHandle}'), findsOneWidget);
     expect(find.text(AppInfo.feedbackEmail), findsOneWidget);
     expect(find.text(AppInfo.personalEmail), findsOneWidget);
-    // Store + share buttons under the version pill (Play production launch).
-    expect(find.text('Google Play'), findsOneWidget);
-    expect(find.text('Share XPENC'), findsOneWidget);
     // Project links — the source-code link once pointed at a repo that
     // doesn't exist publicly; these keep the shipped links real. They sit
     // below the fold at phone size, so bring them into the viewport first.

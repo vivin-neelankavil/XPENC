@@ -328,9 +328,9 @@ class _MessageCaptureScreenState extends ConsumerState<MessageCaptureScreen> {
                   const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Nothing about the privacy promise changes: your data '
-                      'lives on this device and is never uploaded. Updating definitions '
-                      'downloads rule patterns only.',
+                      'Your financial messages and transactions are processed '
+                      'privately on-device and never sent to external servers. '
+                      'Updating definitions downloads rule patterns only.',
                       style: theme.textTheme.bodyMedium,
                     ),
                   ),

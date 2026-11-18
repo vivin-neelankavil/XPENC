@@ -282,7 +282,7 @@ class AboutScreen extends StatelessWidget {
             const SizedBox(height: 6),
             Center(
               child: Tr(
-                'Offline-first · built with Flutter',
+                'Privacy-first · built with Flutter',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: cs.onSurfaceVariant,
                   letterSpacing: 0.4,

@@ -183,8 +183,7 @@ class _IntroCard extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: Tr(
-                'Your data never leaves this phone unless you choose to share '
-                'it.',
+                'Your data stays strictly under your control on your device and private cloud backup unless you choose to export or share it.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: cs.onSurfaceVariant,
                   height: 1.4,

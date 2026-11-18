@@ -15,8 +15,8 @@ class AppInfo {
 
   /// Shown under the wordmark on the About screen.
   static const description =
-      'Offline-first personal finance. Your ledger, budgets and dues live '
-      'on this device — nothing is ever uploaded.';
+      'Privacy-first personal finance. Your ledger, budgets and dues stay '
+      'under your control with optional personal cloud backup — no third-party tracking, no ads.';
 
   // ── Version ────────────────────────────────────────────────────────────────
   static const version = '1.6.6';
@@ -78,7 +78,7 @@ class AppInfo {
 
   /// What "Share XPENC" sends.
   static const shareText =
-      'I track my money with $name — offline, private, no ads. '
+      'I track my money with $name — private, honest, no ads. '
       'Get it on Google Play: $playStoreUrl';
 
   static const licenseName = 'MIT License';
