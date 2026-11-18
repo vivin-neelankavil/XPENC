@@ -2296,9 +2296,17 @@ class AppDatabase extends _$AppDatabase {
     tags,
   )..orderBy([(t) => OrderingTerm(expression: t.name)])).watch();
 
-  Future<int> addTag({required String name, required int colorValue}) => into(
-    tags,
-  ).insert(TagsCompanion.insert(name: name, colorValue: colorValue));
+  Future<int> addTag({
+    required String name,
+    required int colorValue,
+    int? modeId,
+  }) => into(tags).insert(
+    TagsCompanion.insert(
+      name: name,
+      colorValue: colorValue,
+      modeId: modeId == null ? const Value.absent() : Value(modeId),
+    ),
+  );
 
   Future<void> updateTag({
     required int id,

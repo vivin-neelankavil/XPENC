@@ -2617,6 +2617,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           }
         },
         child: Scaffold(
+          resizeToAvoidBottomInset: false,
           body: _loading
               ? const Center(child: CircularProgressIndicator())
               : SafeArea(
