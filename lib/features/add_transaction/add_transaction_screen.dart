@@ -91,7 +91,7 @@ class _PaymentLegEntry {
 /// receipt to carry over.
 enum _AddScreenStep { operation, keypad }
 
-enum _OperationTab { incomes, expenses, accounts }
+enum _OperationTab { moneyIn, moneyOut, transfer }
 
 class AddTransactionScreen extends ConsumerStatefulWidget {
   const AddTransactionScreen({
@@ -152,7 +152,7 @@ class AddTransactionScreen extends ConsumerStatefulWidget {
 class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   late TxType _type;
   _AddScreenStep _step = _AddScreenStep.operation;
-  _OperationTab _operationTab = _OperationTab.expenses;
+  _OperationTab _operationTab = _OperationTab.moneyOut;
   String _calcBuffer = '';
   double? _firstOperand;
   String? _pendingOperator;
@@ -364,11 +364,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         : TxType.expense;
 
     if (_type == TxType.income) {
-      _operationTab = _OperationTab.incomes;
+      _operationTab = _OperationTab.moneyIn;
     } else if (_type == TxType.transfer) {
-      _operationTab = _OperationTab.accounts;
+      _operationTab = _OperationTab.transfer;
     } else {
-      _operationTab = _OperationTab.expenses;
+      _operationTab = _OperationTab.moneyOut;
     }
 
     _step = (_isEditing ||
@@ -2689,9 +2689,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           ),
           child: Row(
             children: [
-              _operationTabButton(theme, tr('Incomes'), _OperationTab.incomes),
-              _operationTabButton(theme, tr('Expenses'), _OperationTab.expenses),
-              _operationTabButton(theme, tr('Accounts'), _OperationTab.accounts),
+              _operationTabButton(theme, tr('Money in'), _OperationTab.moneyIn),
+              _operationTabButton(theme, tr('Money out'), _OperationTab.moneyOut),
+              _operationTabButton(theme, tr('Transfer'), _OperationTab.transfer),
             ],
           ),
         ),
@@ -2718,9 +2718,11 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
             border: Border(
               bottom: BorderSide(
                 color: isSelected
-                    ? (tab == _OperationTab.expenses
-                        ? Colors.redAccent
-                        : theme.colorScheme.primary)
+                    ? (tab == _OperationTab.moneyOut
+                        ? colorForTxType(TxType.expense)
+                        : (tab == _OperationTab.moneyIn
+                            ? colorForTxType(TxType.income)
+                            : colorForTxType(TxType.transfer)))
                     : Colors.transparent,
                 width: 2.5,
               ),
@@ -2746,7 +2748,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     Map<int, AccountRow> accountMap,
     Map<int, CategoryRow> categoryMap,
   ) {
-    if (_operationTab == _OperationTab.accounts) {
+    if (_operationTab == _OperationTab.transfer) {
       final accounts = ref.watch(accountsProvider).valueOrNull ?? [];
       if (accounts.isEmpty) {
         return Center(
@@ -2852,7 +2854,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       );
     }
 
-    final isExpense = _operationTab == _OperationTab.expenses;
+    final isExpense = _operationTab == _OperationTab.moneyOut;
     final kind = isExpense ? CategoryKind.expense : CategoryKind.income;
     final topCategories = categoryMap.values
         .where((c) => c.kind == kind && c.parentId == null && !c.isArchived)
