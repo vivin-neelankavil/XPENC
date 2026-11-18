@@ -27,11 +27,31 @@ const _presetColors = <int>[
 /// Manage tags: short labels that can be pinned to any number of
 /// transactions, cutting across category and account. Unlike a category, a
 /// tag is a hard delete — dropping it just untags whatever carried it.
-class TagsScreen extends ConsumerWidget {
+class TagsScreen extends ConsumerStatefulWidget {
   const TagsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TagsScreen> createState() => _TagsScreenState();
+}
+
+class _TagsScreenState extends ConsumerState<TagsScreen> {
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     // A mode's own tags are managed in that mode's editor.
     final tagsAsync = ref
@@ -53,13 +73,21 @@ class TagsScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (_, _) => Center(
           child: Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: InlineErrorView(message: tr("Couldn't load tags")),
           ),
         ),
         data: (tags) {
+          final trimmedQuery = _searchQuery.trim().toLowerCase();
+          final filteredTags = trimmedQuery.isEmpty
+              ? tags
+              : tags
+                  .where((t) => t.name.toLowerCase().contains(trimmedQuery))
+                  .toList();
+
           return ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 96).plusNavBar(context),
+            padding:
+                const EdgeInsets.fromLTRB(20, 16, 20, 96).plusNavBar(context),
             children: [
               ModuleShortcuts([
                 ModuleShortcut(
@@ -72,22 +100,97 @@ class TagsScreen extends ConsumerWidget {
                   tr('Transactions'),
                   '/more/transactions',
                 ),
-              ], padding: EdgeInsets.fromLTRB(0, 0, 0, 12)),
+              ], padding: const EdgeInsets.fromLTRB(0, 0, 0, 12)),
+              if (tags.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const AppIcon(Icons.search_rounded, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const AppIcon(
+                                Icons.clear_rounded,
+                                size: 18,
+                              ),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      hintText: tr('Search tags...'),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val),
+                  ),
+                ),
               if (tags.isEmpty)
                 _EmptyTags(theme: theme)
+              else if (filteredTags.isEmpty)
+                AppCard(
+                  clipBehavior: Clip.antiAlias,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 32,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        AppIcon(
+                          Icons.search_off_rounded,
+                          size: 40,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          tr('No tags matching "{0}"', [_searchQuery.trim()]),
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton.icon(
+                          icon: const AppIcon(Icons.add_rounded),
+                          label: Text(
+                            tr('Create "{0}"', [_searchQuery.trim()]),
+                          ),
+                          onPressed: () => _openTagEditor(
+                            context,
+                            initialName: _searchQuery.trim(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
               else
                 AppCard(
                   clipBehavior: Clip.antiAlias,
                   child: Column(
                     children: [
-                      for (var i = 0; i < tags.length; i++) ...[
+                      for (var i = 0; i < filteredTags.length; i++) ...[
                         if (i > 0)
                           Divider(
                             height: 1,
                             indent: 60,
                             color: theme.colorScheme.outline,
                           ),
-                        _TagTile(tag: tags[i]),
+                        _TagTile(tag: filteredTags[i]),
                       ],
                     ],
                   ),
@@ -107,7 +210,11 @@ class TagsScreen extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         tooltip: tr('New tag'),
-        onPressed: () => _openTagEditor(context),
+        onPressed: () => _openTagEditor(
+          context,
+          initialName:
+              _searchQuery.trim().isNotEmpty ? _searchQuery.trim() : null,
+        ),
         child: const AppIcon(Icons.add),
       ),
     );
@@ -230,7 +337,11 @@ Future<void> _confirmDelete(
     ..showSnackBar(const SnackBar(content: Tr('Tag deleted')));
 }
 
-Future<void> _openTagEditor(BuildContext context, {TagRow? existing}) {
+Future<void> _openTagEditor(
+  BuildContext context, {
+  TagRow? existing,
+  String? initialName,
+}) {
   return showAppSheet<void>(
     context: context,
     isScrollControlled: true,
@@ -239,14 +350,18 @@ Future<void> _openTagEditor(BuildContext context, {TagRow? existing}) {
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
-    builder: (_) => _TagEditorSheet(existing: existing),
+    builder: (_) => _TagEditorSheet(
+      existing: existing,
+      initialName: initialName,
+    ),
   );
 }
 
 class _TagEditorSheet extends ConsumerStatefulWidget {
-  const _TagEditorSheet({this.existing});
+  const _TagEditorSheet({this.existing, this.initialName});
 
   final TagRow? existing;
+  final String? initialName;
 
   @override
   ConsumerState<_TagEditorSheet> createState() => _TagEditorSheetState();
@@ -262,7 +377,9 @@ class _TagEditorSheetState extends ConsumerState<_TagEditorSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.existing?.name ?? '');
+    _nameController = TextEditingController(
+      text: widget.existing?.name ?? widget.initialName ?? '',
+    );
     _colorValue = widget.existing?.colorValue ?? _presetColors.first;
   }
 

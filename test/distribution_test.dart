@@ -45,11 +45,10 @@ void main() {
         ProviderScope(
           child: MaterialApp(
             theme: AppTheme.light,
-            home: const SettingsScreen(),
+            home: const Scaffold(body: MoreFromUs()),
           ),
         ),
       );
-      await tester.scrollUntilVisible(find.text('More from us'), 300);
       expect(tester.takeException(), isNull);
       expect(find.text('FITNS'), findsOneWidget);
       expect(find.text('CONECTR'), promotes ? findsOneWidget : findsNothing);

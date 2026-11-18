@@ -123,17 +123,35 @@ const kSearchableSettingsIndex = <SearchableSetting>[
     keywords: ['currency', 'symbol', 'rupee', 'inr', 'dollar', 'usd', 'euro', 'money format'],
   ),
   SearchableSetting(
+    title: 'Calendar & Week Starts On',
+    subtitle: 'Sunday/Monday week start, show day totals in calendar',
+    category: 'Settings › General',
+    icon: Icons.calendar_month_outlined,
+    route: '/more/settings/general',
+    keywords: ['calendar', 'week', 'sunday', 'monday', 'day totals', 'reminders'],
+  ),
+
+  // ── Appearance & Layout ────────────────────────────────────────────────────
+  SearchableSetting(
+    title: 'Appearance & Layout',
+    subtitle: 'Theme, colours, font, dashboard widgets and bottom navigation',
+    category: 'Settings',
+    icon: Icons.palette_outlined,
+    route: '/more/settings/appearance',
+    keywords: ['appearance', 'layout', 'theme', 'dark mode', 'colors', 'font', 'dashboard', 'navigation', 'style'],
+  ),
+  SearchableSetting(
     title: 'Theme & Appearance',
     subtitle: 'Classic, Glass, system dark mode or light mode',
-    category: 'Settings › General',
+    category: 'Settings › Appearance & Layout',
     icon: Icons.palette_outlined,
-    route: '/more/settings/general',
+    route: '/more/settings/appearance',
     keywords: ['theme', 'glass', 'dark mode', 'light mode', 'appearance', 'style', 'display'],
   ),
   SearchableSetting(
     title: 'Font & Typography',
     subtitle: 'Font family, boldness, and text size scaling',
-    category: 'Settings › General',
+    category: 'Settings › Appearance & Layout',
     icon: Icons.font_download_outlined,
     route: '/more/settings/font',
     keywords: ['font', 'text', 'typography', 'bold', 'size', 'family'],
@@ -141,7 +159,7 @@ const kSearchableSettingsIndex = <SearchableSetting>[
   SearchableSetting(
     title: 'Colours',
     subtitle: 'Custom tints for money in, money out, and people',
-    category: 'Settings › General',
+    category: 'Settings › Appearance & Layout',
     icon: Icons.color_lens_outlined,
     route: '/more/settings/colours',
     keywords: ['colours', 'colors', 'tint', 'accent', 'green', 'red'],
@@ -149,7 +167,7 @@ const kSearchableSettingsIndex = <SearchableSetting>[
   SearchableSetting(
     title: 'Customize Dashboard',
     subtitle: 'Add, remove, and reorder dashboard widgets and card layouts',
-    category: 'Settings › General',
+    category: 'Settings › Appearance & Layout',
     icon: Icons.dashboard_customize_outlined,
     route: '/more/settings/dashboard',
     keywords: ['dashboard', 'widgets', 'layout', 'home', 'cards', 'reorder'],
@@ -157,18 +175,10 @@ const kSearchableSettingsIndex = <SearchableSetting>[
   SearchableSetting(
     title: 'Customize Bottom Navigation',
     subtitle: 'Choose which navigation tabs appear next to the ➕ button',
-    category: 'Settings › General',
+    category: 'Settings › Appearance & Layout',
     icon: Icons.tab_outlined,
     route: '/more/bottom-nav',
     keywords: ['bottom nav', 'navigation', 'tabs', 'bar', 'buttons', 'customize bar'],
-  ),
-  SearchableSetting(
-    title: 'Calendar & Week Starts On',
-    subtitle: 'Sunday/Monday week start, show day totals in calendar',
-    category: 'Settings › General',
-    icon: Icons.calendar_month_outlined,
-    route: '/more/settings/general',
-    keywords: ['calendar', 'week', 'sunday', 'monday', 'day totals', 'reminders'],
   ),
 
   // ── Security & Privacy ─────────────────────────────────────────────────────
@@ -223,12 +233,12 @@ const kSearchableSettingsIndex = <SearchableSetting>[
     keywords: ['level', 'budget', 'basic', 'medium', 'pro', 'budget cycle', 'ready to assign'],
   ),
   SearchableSetting(
-    title: 'Persons & Repayments',
-    subtitle: 'Repayments, payment methods, settled accounts',
-    category: 'Settings',
-    icon: Icons.people_outline,
+    title: 'Payment Methods & Repayments',
+    subtitle: 'UPI ID, PayPal, Venmo, Cash App, Revolut, repayments accounting',
+    category: 'Settings › Payments & Shortcuts',
+    icon: Icons.payments_outlined,
     route: '/more/settings/persons',
-    keywords: ['persons', 'friends', 'split', 'borrow', 'lend', 'repay', 'repayments'],
+    keywords: ['persons', 'friends', 'split', 'borrow', 'lend', 'repay', 'repayments', 'upi', 'paypal', 'venmo', 'cash app', 'revolut', 'payment methods'],
   ),
   SearchableSetting(
     title: 'Permissions',
@@ -255,12 +265,12 @@ const kSearchableSettingsIndex = <SearchableSetting>[
     keywords: ['quick actions', 'shortcuts', 'widgets', 'home screen', 'app shortcuts'],
   ),
   SearchableSetting(
-    title: 'Data Management & Recalculate',
-    subtitle: 'Recalculate balances to fix drift, clear cache, erase all data',
-    category: 'Settings › Data',
+    title: 'Data & Backup',
+    subtitle: 'Cloud sync (Google Drive), export CSV/JSON, recalculate balances',
+    category: 'More › Setup',
     icon: Icons.storage_outlined,
-    route: '/more/settings/data',
-    keywords: ['data', 'recalculate', 'recalculate balances', 'clear data', 'reset', 'storage', 'drift'],
+    route: '/more/data',
+    keywords: ['data', 'backup', 'cloud sync', 'drive', 'recalculate', 'recalculate balances', 'clear data', 'reset', 'storage', 'drift'],
   ),
   SearchableSetting(
     title: 'Download Data (Export CSV / JSON)',

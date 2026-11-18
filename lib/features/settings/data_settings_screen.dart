@@ -17,7 +17,7 @@ class DataSettingsScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppTopBar(title: const Tr('Data')),
+      appBar: AppTopBar(title: const Tr('Data & Backup')),
       body: ListView(
         // Explicit padding drops ListView's nav-bar inset; re-add it (#137).
         padding: EdgeInsets.fromLTRB(

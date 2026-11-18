@@ -25,6 +25,14 @@ class AppInfo {
   /// `1.0.0 (build 1)` — the string a bug report should quote.
   static const versionLabel = '$version (build $buildNumber)';
 
+  // ── Maintainer ─────────────────────────────────────────────────────────────
+  static const maintainer = 'Vivin Neelankavil';
+  static const maintainerRole = 'Designer & maintainer';
+
+  // ── Original Author ────────────────────────────────────────────────────────
+  static const originalAuthor = 'Yash Patil';
+  static const originalAuthorRole = 'Original author & creator';
+
   // ── Developer ──────────────────────────────────────────────────────────────
   static const developer = 'Yash Patil';
   static const developerRole = 'Design & engineering';
@@ -84,7 +92,7 @@ class AppInfo {
   static const licenseName = 'MIT License';
   static const licenseUrl = '$repoUrl/blob/master/LICENSE';
 
-  static const copyright = '© 2026 Yash Patil';
+  static const copyright = '© 2026 Yash Patil · Maintained by Vivin Neelankavil';
 
   // ── ExoSynk Labs ───────────────────────────────────────────────────────────
   /// The ExoSynk team's apps — XPENC, CONECTR, FITNS. Spelt as their page

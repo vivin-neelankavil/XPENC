@@ -1270,27 +1270,13 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(find.text('XPENC'), findsOneWidget);
     expect(find.text('Version ${AppInfo.versionLabel}'), findsOneWidget);
-    // Store + share buttons under the version pill (Play production launch).
-    expect(find.text('Google Play'), findsOneWidget);
-    expect(find.text('Share XPENC'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('@${AppInfo.githubHandle}'), 240);
-    expect(find.text('@${AppInfo.githubHandle}'), findsOneWidget);
-    expect(find.text('/in/${AppInfo.linkedinHandle}'), findsOneWidget);
-    expect(find.text(AppInfo.feedbackEmail), findsOneWidget);
-    expect(find.text(AppInfo.personalEmail), findsOneWidget);
-    // Project links — the source-code link once pointed at a repo that
-    // doesn't exist publicly; these keep the shipped links real. They sit
-    // below the fold at phone size, so bring them into the viewport first.
+    await tester.scrollUntilVisible(find.text(AppInfo.maintainer), 240);
+    expect(find.text(AppInfo.maintainer), findsOneWidget);
+    expect(find.text(AppInfo.originalAuthor), findsOneWidget);
     await tester.scrollUntilVisible(find.text('PATILYASHH/XPENC'), 240);
     expect(find.text('xpenc.in'), findsOneWidget);
     expect(find.text('PATILYASHH/XPENC'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Latest release'), 240);
-    await tester.ensureVisible(find.text('Latest release'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Latest release'));
-    await tester.pumpAndSettle();
-    expect(find.text('Get the latest version'), findsOneWidget);
-    expect(find.text('F-Droid'), findsOneWidget);
+    expect(find.text('Share XPENC'), findsOneWidget);
     await unmount(tester);
   });
 

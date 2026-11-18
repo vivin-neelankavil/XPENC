@@ -7,6 +7,7 @@ import 'package:xpenc/core/theme/app_theme.dart';
 import 'package:xpenc/data/database.dart';
 import 'package:xpenc/data/providers.dart';
 import 'package:xpenc/data/tables.dart';
+import 'package:xpenc/features/settings/appearance_settings_screen.dart';
 import 'package:xpenc/features/settings/bottom_nav_settings_screen.dart';
 import 'package:xpenc/features/settings/currency_settings_screen.dart';
 import 'package:xpenc/features/settings/dashboard_settings_screen.dart';
@@ -80,6 +81,7 @@ void main() {
   final screens = <String, Widget>{
     'Settings': const SettingsScreen(),
     'General': const GeneralSettingsScreen(),
+    'Appearance & Layout': const AppearanceSettingsScreen(),
     'Level & Budgeting': const ModeBudgetingSettingsScreen(),
     'Persons': const PersonsSettingsScreen(),
     'Security & Privacy': const SecurityPrivacySettingsScreen(),

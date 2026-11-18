@@ -135,9 +135,15 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             route: '/more/ready-to-assign',
             module: 'budgets',
             subtitle:
-                tr('{0} '
-                'unassigned', [MoneyFormat.compact(ref.watch(readyToAssignProvider))]),
+                tr('{0} unassigned', [MoneyFormat.compact(ref.watch(readyToAssignProvider))]),
           ),
+        _Item(
+          Icons.savings_outlined,
+          tr('Goals & Loans'),
+          route: '/more/goals',
+          subtitle: tr('Savings goals and loans in one place'),
+          module: 'goals',
+        ),
         _Item(
           Icons.autorenew_rounded,
           tr('Auto'),
@@ -152,29 +158,8 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           subtitle: tr('Who you pay, and how much'),
           module: 'payees',
         ),
-        _Item(
-          Icons.savings_outlined,
-          tr('Goals & Loans'),
-          route: '/more/goals',
-          subtitle: tr('Savings goals and loans in one place'),
-          module: 'goals',
-        ),
-        _Item(
-          Icons.checklist_outlined,
-          tr('Shopping List'),
-          route: '/more/shopping',
-          subtitle: tr('Plan what to buy'),
-          module: 'shopping',
-        ),
       ]),
       _Group(tr('Insights'), [
-        _Item(
-          Icons.calendar_month_outlined,
-          tr('Calendar & Reminders'),
-          route: '/more/calendar',
-          subtitle: tr('Day-wise in/out · planned payments'),
-          module: 'calendar',
-        ),
         _Item(
           Icons.insights_outlined,
           tr('Stats'),
@@ -188,6 +173,22 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           route: '/more/account-reports',
           subtitle: tr('Per-account breakdown'),
           module: 'reports',
+        ),
+        _Item(
+          Icons.calendar_month_outlined,
+          tr('Calendar & Reminders'),
+          route: '/more/calendar',
+          subtitle: tr('Day-wise in/out · planned payments'),
+          module: 'calendar',
+        ),
+      ]),
+      _Group(tr('Tools'), [
+        _Item(
+          Icons.checklist_outlined,
+          tr('Shopping List'),
+          route: '/more/shopping',
+          subtitle: tr('Plan what to buy'),
+          module: 'shopping',
         ),
       ]),
       _Group(tr('Calculators'), beta: true, [
@@ -216,16 +217,23 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           module: 'setup',
         ),
         _Item(
+          Icons.storage_outlined,
+          tr('Data & Backup'),
+          route: '/more/data',
+          subtitle: tr('Cloud sync (Google Drive), backup & export'),
+          module: 'data',
+        ),
+        _Item(
           Icons.settings_outlined,
           tr('Settings'),
           route: '/more/settings',
-          subtitle: tr('Currency · theme · notifications'),
+          subtitle: tr('Appearance · currency · security · notifications'),
         ),
         _Item(
           Icons.info_outline_rounded,
           'About ${AppInfo.name}',
           route: '/more/about',
-          subtitle: tr('Version {0} · Yash Patil', [AppInfo.version]),
+          subtitle: tr('Version {0} · Vivin Neelankavil', [AppInfo.version]),
         ),
       ]),
     ];

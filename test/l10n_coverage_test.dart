@@ -20,6 +20,7 @@ import 'package:xpenc/features/persons/persons_screen.dart';
 import 'package:xpenc/features/reports/account_reports_screen.dart';
 import 'package:xpenc/features/reports/stats_screen.dart';
 import 'package:xpenc/features/savings/savings_goals_screen.dart';
+import 'package:xpenc/features/settings/appearance_settings_screen.dart';
 import 'package:xpenc/features/settings/general_settings_screen.dart';
 import 'package:xpenc/features/settings/security_privacy_settings_screen.dart';
 import 'package:xpenc/features/settings/settings_screen.dart';
@@ -92,6 +93,7 @@ void main() {
   final screens = <String, Widget Function()>{
     'Settings': () => const SettingsScreen(),
     'General settings': () => const GeneralSettingsScreen(),
+    'Appearance settings': () => const AppearanceSettingsScreen(),
     'Security': () => const SecurityPrivacySettingsScreen(),
     'More': () => const MoreScreen(),
     'Accounts': () => const AccountsScreen(),

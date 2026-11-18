@@ -41,6 +41,7 @@ class GeneralSettingsScreen extends ConsumerWidget {
           32 + MediaQuery.of(context).padding.bottom,
         ),
         children: [
+          settingsSectionLabel(context, tr('Regional & Display')),
           AppCard(
             child: Column(
               children: [
@@ -183,21 +184,39 @@ class GeneralSettingsScreen extends ConsumerWidget {
             ),
           ),
 
-          settingsSectionLabel(context, tr('Dashboard')),
+          settingsSectionLabel(context, tr('Dashboard & Navigation')),
           AppCard(
-            child: AppListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const AppIcon(Icons.dashboard_customize_outlined),
-              title: const Tr('Customize dashboard'),
-              subtitle: Tr(
-                'Add, remove and reorder widgets, lay out Accounts, and pick '
-                'what counts toward Net Worth.',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+            child: Column(
+              children: [
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const AppIcon(Icons.dashboard_customize_outlined),
+                  title: const Tr('Customize dashboard'),
+                  subtitle: Tr(
+                    'Add, remove and reorder widgets, lay out Accounts, and pick '
+                    'what counts toward Net Worth.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: const AppIcon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/more/settings/dashboard'),
                 ),
-              ),
-              trailing: const AppIcon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/more/settings/dashboard'),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: const AppIcon(Icons.tab_outlined),
+                  title: const Tr('Customize bottom nav'),
+                  subtitle: Tr(
+                    'Choose what goes next to the ➕ button',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
+                  ),
+                  trailing: const AppIcon(Icons.chevron_right_rounded),
+                  onTap: () => context.push('/more/bottom-nav'),
+                ),
+              ],
             ),
           ),
 
@@ -263,23 +282,6 @@ class GeneralSettingsScreen extends ConsumerWidget {
                       ref.read(dbProvider).setShowCalendarDayTotals(v),
                 ),
               ],
-            ),
-          ),
-
-          settingsSectionLabel(context, tr('Layout')),
-          AppCard(
-            child: AppListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-              leading: const AppIcon(Icons.dashboard_customize_outlined),
-              title: const Tr('Customize bottom nav'),
-              subtitle: Tr(
-                'Choose what goes next to the ➕ button',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                ),
-              ),
-              trailing: const AppIcon(Icons.chevron_right_rounded),
-              onTap: () => context.push('/more/bottom-nav'),
             ),
           ),
 

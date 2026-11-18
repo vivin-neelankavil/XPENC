@@ -2,8 +2,10 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xpenc/core/money.dart';
 import 'package:xpenc/data/database.dart';
 import 'package:xpenc/data/providers.dart';
+import 'package:xpenc/data/tables.dart';
 import 'package:xpenc/features/tags/tag_picker_sheet.dart';
 
 void main() {
@@ -57,7 +59,13 @@ void main() {
     expect(find.byType(TagEditorDialog), findsOneWidget);
 
     // Enter name
-    await tester.enterText(find.byType(TextField), 'Vacation');
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(TagEditorDialog),
+        matching: find.byType(TextField),
+      ),
+      'Vacation',
+    );
     await tester.pump();
 
     // Tap Add button
@@ -83,6 +91,85 @@ void main() {
       ),
     );
     expect(vacationChip.selected, isTrue);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  });
+
+  testWidgets('filters tags using search box', (tester) async {
+    await db.addTag(name: 'Groceries', colorValue: 0xFF2563EB);
+    await db.addTag(name: 'Travel', colorValue: 0xFF16A34A);
+    await tester.pumpWidget(buildSheet());
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(find.text('Groceries'), findsOneWidget);
+    expect(find.text('Travel'), findsOneWidget);
+
+    // Search for 'Groc'
+    final searchField = find.byType(TextField);
+    expect(searchField, findsOneWidget);
+    await tester.enterText(searchField, 'Groc');
+    await tester.pump();
+
+    expect(find.text('Groceries'), findsOneWidget);
+    expect(find.text('Travel'), findsNothing);
+
+    // Search for non-existent tag
+    await tester.enterText(searchField, 'NonExistent');
+    await tester.pump();
+
+    expect(find.text('Groceries'), findsNothing);
+    expect(find.text('Travel'), findsNothing);
+    expect(find.text('No tags matching "NonExistent"'), findsOneWidget);
+    expect(find.text('Create "NonExistent"'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+  });
+
+  testWidgets('orders tags in descending order of usage', (tester) async {
+    await db.addTag(name: 'Apple', colorValue: 0xFF2563EB);
+    final t2 = await db.addTag(name: 'Banana', colorValue: 0xFF16A34A);
+    final t3 = await db.addTag(name: 'Cherry', colorValue: 0xFFDC2626);
+
+    final accounts = await db.select(db.accounts).get();
+    final cashId = accounts.firstWhere((a) => a.type == AccountType.cash).id;
+
+    // Banana used 3 times, Cherry used 1 time, Apple used 0 times
+    for (var i = 0; i < 3; i++) {
+      final txId = await db.addTransaction(
+        type: TxType.expense,
+        amount: Money.fromRupees(100),
+        date: DateTime.now(),
+        accountId: cashId,
+      );
+      await db.setTransactionTags(txId, {t2});
+    }
+
+    final singleTxId = await db.addTransaction(
+      type: TxType.expense,
+      amount: Money.fromRupees(50),
+      date: DateTime.now(),
+      accountId: cashId,
+    );
+    await db.setTransactionTags(singleTxId, {t3});
+
+    await tester.pumpWidget(buildSheet());
+    for (var i = 0; i < 5; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    // Banana (3 uses) should come before Cherry (1 use), then Apple (0 uses)
+    final chips = tester.widgetList<FilterChip>(find.byType(FilterChip)).toList();
+    final chipTexts = chips.map((c) => (c.label as Text).data).toList();
+
+    expect(chipTexts, ['Banana', 'Cherry', 'Apple']);
 
     await tester.pumpWidget(const SizedBox.shrink());
     for (var i = 0; i < 5; i++) {

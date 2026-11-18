@@ -40,6 +40,70 @@ List<WhatsNewEntry> get whatsNewEntries => [
 
 const _whatsNewEntries = <WhatsNewEntry>[
   WhatsNewEntry(
+    icon: Icons.cloud_sync_outlined,
+    title: 'Google Drive cloud backup & sync',
+    location: 'More → Data & Backup → Cloud sync',
+    description:
+        'Back up and sync your financial database directly to your personal '
+        'Google Drive. Safe, encrypted, and accessible across devices.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.sync_rounded,
+    title: 'Pull down to sync transactions',
+    location: 'Transactions → Pull down to refresh',
+    description:
+        'Swipe down on your Transactions list to immediately trigger cloud '
+        'synchronization and fetch the latest changes.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.calculate_outlined,
+    title: 'Redesigned Add Transaction flow',
+    location: 'Add (➕ button)',
+    description:
+        'A sleek keypad with Money in, Money out and Transfer tabs, visual '
+        'category grid, and instant arithmetic calculations.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.edit_note_rounded,
+    title: 'Payee and expanding multiline notes',
+    location: 'Add → Bottom action bar',
+    description:
+        'Separate quick-access buttons for Payee and Notes. The note sheet '
+        'smoothly grows in height as you type multiple lines.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.sell_outlined,
+    title: 'Smart tag picker with usage ranking',
+    location: 'Add → Tag button',
+    description:
+        'Quickly search tags and see your most frequently used tags right at '
+        'the top, with an instant "+ New tag" creator.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.search_rounded,
+    title: 'Search in Tags management',
+    location: 'More → Tags',
+    description:
+        'Real-time search across all your tags with instant filtering, clear '
+        'button, and one-tap creation for missing tags.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.dashboard_customize_outlined,
+    title: 'Reorganized Settings & More',
+    location: 'More',
+    description:
+        'Data & Backup is now directly on the More page, paired with a dedicated '
+        'Appearance settings screen for a cleaner experience.',
+  ),
+  WhatsNewEntry(
+    icon: Icons.edit_outlined,
+    title: 'Editable loan borrowed amount',
+    location: 'Goals & Loans → a loan → Edit',
+    description:
+        'Adjust the initial borrowed principal on any existing loan without '
+        'needing to delete and re-enter the loan.',
+  ),
+  WhatsNewEntry(
     icon: Icons.undo_rounded,
     title: 'Refunds give back to a budget',
     location: 'Add → Money in → Refund',

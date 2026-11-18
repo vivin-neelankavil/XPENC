@@ -67,6 +67,7 @@ import '../../features/settings/dashboard_settings_screen.dart';
 import '../../features/settings/data_settings_screen.dart';
 import '../../features/settings/colors_settings_screen.dart';
 import '../../features/settings/font_settings_screen.dart';
+import '../../features/settings/appearance_settings_screen.dart';
 import '../../features/settings/general_settings_screen.dart';
 import '../../features/settings/mode_budgeting_settings_screen.dart';
 import '../../features/settings/notifications_settings_screen.dart';
@@ -224,6 +225,11 @@ final appRouter = GoRouter(
                       path: 'general',
                       parentNavigatorKey: _rootKey,
                       builder: (_, _) => const GeneralSettingsScreen(),
+                    ),
+                    GoRoute(
+                      path: 'appearance',
+                      parentNavigatorKey: _rootKey,
+                      builder: (_, _) => const AppearanceSettingsScreen(),
                     ),
                     // XPENC web's built-in Connector.
                     GoRoute(
@@ -461,6 +467,11 @@ final appRouter = GoRouter(
                   path: 'export',
                   parentNavigatorKey: _rootKey,
                   builder: (_, _) => const DownloadDataScreen(),
+                ),
+                GoRoute(
+                  path: 'data',
+                  parentNavigatorKey: _rootKey,
+                  builder: (_, _) => const DataSettingsScreen(),
                 ),
                 GoRoute(
                   path: 'backup',

@@ -43,21 +43,35 @@ class TagPickerSheet extends ConsumerStatefulWidget {
 
 class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
   final Set<int> _selected = {};
+  late final TextEditingController _searchController;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
     _selected.addAll(widget.initiallySelected);
+    _searchController = TextEditingController();
   }
 
-  Future<void> _createNewTag() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createNewTag({String? initialName}) async {
     final newTagId = await showAppDialog<int>(
       context: context,
-      builder: (_) => TagEditorDialog(modeId: widget.modeId),
+      builder: (_) => TagEditorDialog(
+        modeId: widget.modeId,
+        initialName: initialName,
+      ),
     );
     if (newTagId != null && mounted) {
       setState(() {
         _selected.add(newTagId);
+        _searchController.clear();
+        _searchQuery = '';
       });
     }
   }
@@ -65,132 +79,251 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final media = MediaQuery.of(context);
     final tagsAsync = ref
         .watch(tagsProvider)
         .whenData((_) => ref.watch(pickerTagsProvider(widget.modeId)));
     final groups = ref.watch(tagGroupsProvider).valueOrNull ?? const [];
     final tagsByGroup = ref.watch(tagGroupTagsByGroupProvider);
+    final usage = ref.watch(tagUsageCountsProvider);
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.7,
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 12, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Tr('Tags', style: theme.textTheme.titleLarge),
-                  ),
-                  _DottedNewTagButton(onPressed: _createNewTag),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () => Navigator.of(context).pop(_selected),
-                    child: const Tr('Done'),
-                  ),
-                ],
-              ),
-            ),
-            if (groups.isNotEmpty)
+    final trimmedQuery = _searchQuery.trim().toLowerCase();
+    final hasTags = (tagsAsync.valueOrNull ?? const []).isNotEmpty;
+
+    final filteredGroups = groups.where((group) {
+      if (trimmedQuery.isEmpty) return true;
+      if (group.name.toLowerCase().contains(trimmedQuery)) return true;
+      final groupTags = tagsByGroup[group.id] ?? const [];
+      return groupTags.any((t) => t.name.toLowerCase().contains(trimmedQuery));
+    }).toList();
+
+    final availableHeight = media.size.height - media.viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: media.viewInsets.bottom),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: media.viewInsets.bottom > 0
+              ? availableHeight * 0.9
+              : media.size.height * 0.7,
+        ),
+        child: SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
+                padding: const EdgeInsets.fromLTRB(20, 4, 12, 8),
+                child: Row(
                   children: [
-                    for (final group in groups)
-                      _GroupChip(
-                        group: group,
-                        tags: tagsByGroup[group.id] ?? const [],
-                        selected: _selected,
-                        onToggle: (ids) => setState(() {
-                          if (ids.every(_selected.contains)) {
-                            _selected.removeAll(ids);
-                          } else {
-                            _selected.addAll(ids);
-                          }
-                        }),
-                      ),
+                    Expanded(
+                      child: Tr('Tags', style: theme.textTheme.titleLarge),
+                    ),
+                    _DottedNewTagButton(onPressed: _createNewTag),
+                    const SizedBox(width: 8),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(_selected),
+                      child: const Tr('Done'),
+                    ),
                   ],
                 ),
               ),
-            Flexible(
-              child: tagsAsync.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.all(32),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
-                error: (e, _) => Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    tr('Could not load tags.\n{0}', [e]),
-                    style: theme.textTheme.bodyMedium,
+              if (hasTags)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      prefixIcon: const AppIcon(Icons.search_rounded, size: 20),
+                      suffixIcon: _searchQuery.isNotEmpty
+                          ? IconButton(
+                              icon: const AppIcon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _searchController.clear();
+                                setState(() => _searchQuery = '');
+                              },
+                            )
+                          : null,
+                      hintText: tr('Search tags...'),
+                      filled: true,
+                      fillColor: theme.colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        borderSide: BorderSide.none,
+                      ),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                    ),
+                    onChanged: (val) => setState(() => _searchQuery = val),
                   ),
                 ),
-                data: (tags) {
-                  if (tags.isEmpty) {
-                    return Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AppIcon(
-                            Icons.sell_outlined,
-                            size: 40,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                          const SizedBox(height: 12),
-                          Tr(
-                            'No tags yet',
-                            style: theme.textTheme.bodyMedium?.copyWith(
+              if (filteredGroups.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final group in filteredGroups)
+                        _GroupChip(
+                          group: group,
+                          tags: tagsByGroup[group.id] ?? const [],
+                          selected: _selected,
+                          onToggle: (ids) => setState(() {
+                            if (ids.every(_selected.contains)) {
+                              _selected.removeAll(ids);
+                            } else {
+                              _selected.addAll(ids);
+                            }
+                          }),
+                        ),
+                    ],
+                  ),
+                ),
+              Flexible(
+                child: tagsAsync.when(
+                  loading: () => const Padding(
+                    padding: EdgeInsets.all(32),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+                  error: (e, _) => Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      tr('Could not load tags.\n{0}', [e]),
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                  data: (tags) {
+                    if (tags.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.all(32),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppIcon(
+                              Icons.sell_outlined,
+                              size: 40,
                               color: theme.colorScheme.onSurfaceVariant,
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          FilledButton.icon(
-                            icon: const AppIcon(Icons.add_rounded),
-                            label: const Tr('Add tag'),
-                            onPressed: _createNewTag,
-                          ),
+                            const SizedBox(height: 12),
+                            Tr(
+                              'No tags yet',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              icon: const AppIcon(Icons.add_rounded),
+                              label: const Tr('Add tag'),
+                              onPressed: _createNewTag,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final sortedTags = [...tags]..sort((a, b) {
+                      final countA = usage[a.id] ?? 0;
+                      final countB = usage[b.id] ?? 0;
+                      final cmp = countB.compareTo(countA); // descending
+                      if (cmp != 0) return cmp;
+                      return a.name
+                          .toLowerCase()
+                          .compareTo(b.name.toLowerCase());
+                    });
+
+                    final filteredTags = trimmedQuery.isEmpty
+                        ? sortedTags
+                        : sortedTags
+                            .where(
+                              (t) =>
+                                  t.name.toLowerCase().contains(trimmedQuery),
+                            )
+                            .toList();
+
+                    if (filteredTags.isEmpty) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 32,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AppIcon(
+                              Icons.search_off_rounded,
+                              size: 40,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              tr(
+                                'No tags matching "{0}"',
+                                [_searchQuery.trim()],
+                              ),
+                              textAlign: TextAlign.center,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              icon: const AppIcon(Icons.add_rounded),
+                              label: Text(
+                                tr('Create "{0}"', [_searchQuery.trim()]),
+                              ),
+                              onPressed: () => _createNewTag(
+                                initialName: _searchQuery.trim(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return SingleChildScrollView(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(
+                        20,
+                        0,
+                        20,
+                        20,
+                      ).plusNavBar(context),
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          for (final tag in filteredTags)
+                            FilterChip(
+                              label: Text(tag.name),
+                              selected: _selected.contains(tag.id),
+                              selectedColor: Color(
+                                tag.colorValue,
+                              ).withValues(alpha: 0.22),
+                              checkmarkColor: Color(tag.colorValue),
+                              onSelected: (v) => setState(() {
+                                if (v) {
+                                  _selected.add(tag.id);
+                                } else {
+                                  _selected.remove(tag.id);
+                                }
+                              }),
+                            ),
                         ],
                       ),
                     );
-                  }
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20).plusNavBar(context),
-                    child: Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        for (final tag in tags)
-                          FilterChip(
-                            label: Text(tag.name),
-                            selected: _selected.contains(tag.id),
-                            selectedColor: Color(
-                              tag.colorValue,
-                            ).withValues(alpha: 0.22),
-                            checkmarkColor: Color(tag.colorValue),
-                            onSelected: (v) => setState(() {
-                              if (v) {
-                                _selected.add(tag.id);
-                              } else {
-                                _selected.remove(tag.id);
-                              }
-                            }),
-                          ),
-                      ],
-                    ),
-                  );
-                },
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -342,9 +475,10 @@ class _GroupChip extends StatelessWidget {
 
 /// Dialog to quickly create a new tag right from the tag picker.
 class TagEditorDialog extends ConsumerStatefulWidget {
-  const TagEditorDialog({this.modeId, super.key});
+  const TagEditorDialog({this.modeId, this.initialName, super.key});
 
   final int? modeId;
+  final String? initialName;
 
   @override
   ConsumerState<TagEditorDialog> createState() => _TagEditorDialogState();
@@ -360,7 +494,12 @@ class _TagEditorDialogState extends ConsumerState<TagEditorDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
+    _nameController = TextEditingController(text: widget.initialName ?? '');
+    if (widget.initialName != null && widget.initialName!.isNotEmpty) {
+      _nameController.selection = TextSelection.fromPosition(
+        TextPosition(offset: widget.initialName!.length),
+      );
+    }
     _focusNode = FocusNode();
   }
 

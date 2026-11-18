@@ -62,8 +62,8 @@ void main() {
     container.read(moreSearchQueryProvider.notifier).state = 'Backup';
     await tester.pump();
 
-    // "Backup & Restore" should be visible
-    expect(find.text('Backup & Restore'), findsOneWidget);
+    // "Data & Backup" should be visible
+    expect(find.text('Data & Backup'), findsOneWidget);
     // "Accounts" should be filtered out
     expect(find.text('Accounts'), findsNothing);
 

@@ -2165,6 +2165,20 @@ final personEntryTagsByEntryProvider = Provider<Map<int, List<TagRow>>>((ref) {
   return out;
 });
 
+/// Counts how many times each tag is used across transactions and person entries.
+final tagUsageCountsProvider = Provider<Map<int, int>>((ref) {
+  final txLinks = ref.watch(_transactionTagLinksProvider).valueOrNull ?? const [];
+  final personLinks = ref.watch(_personEntryTagLinksProvider).valueOrNull ?? const [];
+  final counts = <int, int>{};
+  for (final link in txLinks) {
+    counts[link.tagId] = (counts[link.tagId] ?? 0) + 1;
+  }
+  for (final link in personLinks) {
+    counts[link.tagId] = (counts[link.tagId] ?? 0) + 1;
+  }
+  return counts;
+});
+
 // ── Tag groups ──────────────────────────────────────────────────────────────
 
 final tagGroupsProvider = StreamProvider<List<TagGroupRow>>(
@@ -2361,7 +2375,7 @@ final cloudSyncServiceProvider = Provider<CloudSyncService>(
   (ref) => CloudSyncService(ref.watch(dbProvider), ref.watch(sharedPrefsProvider)),
 );
 
-final moreSearchActiveProvider = StateProvider<bool>((ref) => true);
+final moreSearchActiveProvider = StateProvider<bool>((ref) => false);
 final moreSearchQueryProvider = StateProvider<String>((ref) => '');
 
 /// The live list of known backups. Reads `AppDatabase.watchBackupRecords`

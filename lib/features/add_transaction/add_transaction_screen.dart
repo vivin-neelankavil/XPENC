@@ -3458,8 +3458,8 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   Widget _actionToolbar(ThemeData theme) {
     final hasReceipt = _imagePath != null;
-    final hasNoteOrPayee = _noteController.text.trim().isNotEmpty ||
-        _payeeController.text.trim().isNotEmpty;
+    final hasPayee = _payeeController.text.trim().isNotEmpty;
+    final hasNote = _noteController.text.trim().isNotEmpty;
     final hasTags = _tagIds.isNotEmpty;
 
     return Container(
@@ -3481,7 +3481,9 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               active: hasReceipt,
               badge: hasReceipt ? '1' : null,
               tooltip: tr('Receipt'),
-              onTap: _imagePath != null ? _openReceiptSheet : _showAttachReceiptSheet,
+              onTap: _imagePath != null
+                  ? _openReceiptSheet
+                  : _showAttachReceiptSheet,
             ),
           ),
           Container(
@@ -3492,10 +3494,24 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           Expanded(
             child: _toolbarItem(
               theme: theme,
-              icon: Icons.chat_bubble_outline_rounded,
-              active: hasNoteOrPayee,
-              tooltip: tr('Note & Payee'),
-              onTap: () => _showNotePayeeSheet(context),
+              icon: Icons.storefront_outlined,
+              active: hasPayee,
+              tooltip: tr('Payee'),
+              onTap: _pickPayee,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          Expanded(
+            child: _toolbarItem(
+              theme: theme,
+              icon: Icons.notes_outlined,
+              active: hasNote,
+              tooltip: tr('Note'),
+              onTap: () => _showNoteSheet(context),
             ),
           ),
           Container(
@@ -3573,39 +3589,75 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     );
   }
 
-  Future<void> _showNotePayeeSheet(BuildContext context) async {
+  Future<void> _showNoteSheet(BuildContext context) async {
     final theme = Theme.of(context);
     await showAppSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-          left: 20,
-          right: 20,
-          top: 8,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              tr('Note & Payee'),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            left: 20,
+            right: 20,
+            top: 8,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                tr('Note'),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            _payeeCard(),
-            const SizedBox(height: 12),
-            _noteCard(),
-            const SizedBox(height: 16),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: Text(tr('Done')),
-            ),
-          ],
+              const SizedBox(height: 16),
+              AppCard(
+                margin: EdgeInsets.zero,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: TextField(
+                    controller: _noteController,
+                    focusNode: _noteFocus,
+                    autofocus: true,
+                    minLines: 1,
+                    maxLines: 6,
+                    keyboardType: TextInputType.multiline,
+                    textInputAction: TextInputAction.newline,
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: (_) => setSheetState(() {}),
+                    decoration: InputDecoration(
+                      hintText: tr('Note (optional)'),
+                      border: InputBorder.none,
+                      icon: AppIcon(
+                        Icons.notes_outlined,
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      suffixIcon: _noteController.text.isNotEmpty
+                          ? IconButton(
+                              icon: const AppIcon(Icons.clear_rounded, size: 18),
+                              onPressed: () {
+                                _noteController.clear();
+                                setSheetState(() {});
+                              },
+                            )
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: Text(tr('Done')),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -3810,115 +3862,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           _isNct
               ? tr('NCT · hidden in lists until held, captures blocked when open')
               : tr('NCT · keep it out of screenshots and recordings'),
-        ),
-      ),
-    );
-  }
-
-  Widget _noteCard() {
-    final theme = Theme.of(context);
-    return AppCard(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: TextField(
-          controller: _noteController,
-          focusNode: _noteFocus,
-          textCapitalization: TextCapitalization.sentences,
-          decoration: InputDecoration(
-            hintText: tr('Note (optional)'),
-            border: InputBorder.none,
-            icon: AppIcon(
-              Icons.notes_outlined,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Expense or income only (GitHub #62 — a salary needs a payee too, same as
-  /// a purchase). Tapping opens the payee sheet — people, past payees and
-  /// contacts, sized above the keyboard — instead of an inline field whose
-  /// suggestions ended up hidden behind it. Optional: blank is normal.
-  Widget _payeeCard() {
-    final theme = Theme.of(context);
-    final name = _payeeController.text.trim();
-    final person = _payeePersonId == null
-        ? null
-        : ref.watch(allPersonsByIdProvider)[_payeePersonId];
-    return AppCard(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: _pickPayee,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 4, 12),
-          child: Row(
-            children: [
-              if (person != null)
-                PersonAvatar(
-                  name: person.name,
-                  photoPath: person.photoPath,
-                  radius: 14,
-                )
-              else
-                AppIcon(
-                  Icons.storefront_outlined,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: name.isEmpty
-                    ? Text(
-                        _type == TxType.income
-                            ? tr('Payee (optional) — who paid you?')
-                            : tr('Payee (optional) — who did you pay?'),
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            person?.name ?? name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodyLarge,
-                          ),
-                          if (person != null)
-                            Tr(
-                              'Person · not counted in owe/due',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                        ],
-                      ),
-              ),
-              if (name.isNotEmpty)
-                IconButton(
-                  icon: const AppIcon(Icons.close_rounded),
-                  tooltip: tr('Clear payee'),
-                  visualDensity: VisualDensity.compact,
-                  onPressed: () => setState(() {
-                    _payeeController.clear();
-                    _payeePersonId = null;
-                  }),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: AppIcon(
-                    Icons.chevron_right_rounded,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                ),
-            ],
-          ),
         ),
       ),
     );

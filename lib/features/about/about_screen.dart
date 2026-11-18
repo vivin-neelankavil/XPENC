@@ -20,10 +20,6 @@ class AboutScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppTopBar(title: const Tr('About')),
-      // Not a `SafeArea` — on some 3-button-nav devices its reported inset
-      // doesn't clear the nav bar (GitHub #53, the same class of bug as
-      // #14). Adding the inset explicitly is the pattern that actually held
-      // up for that one.
       body: ListView(
         padding: EdgeInsets.fromLTRB(
           20,
@@ -32,263 +28,186 @@ class AboutScreen extends StatelessWidget {
           40 + MediaQuery.of(context).padding.bottom,
         ),
         children: [
-            const SizedBox(height: 12),
-            const Center(child: BrandMark(size: 92)),
-            const SizedBox(height: 20),
-            const Center(child: BrandWordmark(fontSize: 34)),
-            const SizedBox(height: 8),
-            Center(
+          const SizedBox(height: 12),
+          const Center(child: BrandMark(size: 80)),
+          const SizedBox(height: 16),
+          const Center(child: BrandWordmark(fontSize: 32)),
+          const SizedBox(height: 6),
+          Center(
+            child: Tr(
+              AppInfo.tagline,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(child: _VersionPill()),
+          const SizedBox(height: 24),
+
+          AppCard(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
               child: Tr(
-                AppInfo.tagline,
+                AppInfo.description,
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: cs.onSurfaceVariant,
+                  height: 1.5,
                 ),
               ),
             ),
-            const SizedBox(height: 18),
-            Center(child: _VersionPill()),
-            const SizedBox(height: 22),
-            Row(
+          ),
+
+          _sectionLabel(context, tr('Discover')),
+          AppCard(
+            child: Column(
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () => _openPlayStore(context),
-                    icon: const AppIcon(Icons.shop_rounded, size: 20),
-                    label: const Tr('Google Play'),
+                _LinkTile(
+                  icon: Icons.auto_awesome_outlined,
+                  label: tr("What's new"),
+                  value: tr('See what shipped in {0}', [AppInfo.version]),
+                  onTap: () => context.push('/more/whats-new'),
+                ),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                _LinkTile(
+                  icon: Icons.menu_book_outlined,
+                  label: tr('Guide'),
+                  value: tr('Every feature explained, plus Basic/Medium/Pro'),
+                  onTap: () => context.push('/more/guide'),
+                ),
+              ],
+            ),
+          ),
+
+          _sectionLabel(context, tr('Credits')),
+          AppCard(
+            child: Column(
+              children: [
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: cs.primary,
+                    foregroundColor: cs.onPrimary,
+                    child: const Text(
+                      'VN',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    AppInfo.maintainer,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    tr('Designer & maintainer · New features, UI redesign & cloud sync'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
+                    ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Builder(
-                    // Its own context, so the share popover anchors here.
-                    builder: (buttonContext) => OutlinedButton.icon(
-                      onPressed: () => _shareApp(buttonContext),
-                      icon: const AppIcon(Icons.share_rounded, size: 20),
-                      label: const Tr('Share XPENC'),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                AppListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  leading: CircleAvatar(
+                    backgroundColor: cs.surfaceContainerHighest,
+                    foregroundColor: cs.onSurfaceVariant,
+                    child: const Text(
+                      'YP',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  title: Text(
+                    AppInfo.originalAuthor,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    tr('Original author & creator'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: cs.onSurfaceVariant,
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 28),
+          ),
 
-            AppCard(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Tr(
-                  AppInfo.description,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: cs.onSurfaceVariant,
-                    height: 1.5,
-                  ),
+          _sectionLabel(context, tr('Project')),
+          AppCard(
+            child: Column(
+              children: [
+                _LinkTile(
+                  icon: Icons.code_rounded,
+                  label: tr('Source code'),
+                  value: 'PATILYASHH/XPENC',
+                  url: AppInfo.repoUrl,
                 ),
-              ),
-            ),
-
-            _sectionLabel(context, tr('Discover')),
-            AppCard(
-              child: Column(
-                children: [
-                  _LinkTile(
-                    icon: Icons.auto_awesome_outlined,
-                    label: tr("What's new"),
-                    value: tr('See what shipped in {0}', [AppInfo.version]),
-                    onTap: () => context.push('/more/whats-new'),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.menu_book_outlined,
-                    label: tr('Guide'),
-                    value: tr('Every feature explained, plus Basic/Medium/Pro'),
-                    onTap: () => context.push('/more/guide'),
-                  ),
-                ],
-              ),
-            ),
-
-            _sectionLabel(context, tr('Developer')),
-            AppCard(
-              child: Column(
-                children: [
-                  AppListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                    leading: CircleAvatar(
-                      backgroundColor: cs.onSurface,
-                      child: Text(
-                        'YP',
-                        style: TextStyle(
-                          color: cs.surface,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-                    title: Text(
-                      AppInfo.developer,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    subtitle: Text(
-                      AppInfo.developerRole,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.alternate_email_rounded,
-                    label: tr('GitHub'),
-                    value: '@${AppInfo.githubHandle}',
-                    url: AppInfo.githubUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.badge_outlined,
-                    label: tr('LinkedIn'),
-                    value: '/in/${AppInfo.linkedinHandle}',
-                    url: AppInfo.linkedinUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.volunteer_activism_rounded,
-                    label: tr('GitHub Sponsors'),
-                    value: tr('Support this project'),
-                    url: AppInfo.sponsorUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.mail_outline_rounded,
-                    label: tr('Feedback & suggestions'),
-                    value: AppInfo.feedbackEmail,
-                    url: 'mailto:${AppInfo.feedbackEmail}',
-                    copyValue: AppInfo.feedbackEmail,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.email_outlined,
-                    label: tr('Personal email'),
-                    value: AppInfo.personalEmail,
-                    url: 'mailto:${AppInfo.personalEmail}',
-                    copyValue: AppInfo.personalEmail,
-                  ),
-                ],
-              ),
-            ),
-
-            _sectionLabel(context, tr('Community')),
-            AppCard(
-              child: Column(
-                children: [
-                  _LinkTile(
-                    icon: Icons.camera_alt_outlined,
-                    label: tr('Instagram'),
-                    value: '@${AppInfo.instagramHandle}',
-                    url: AppInfo.instagramUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.chat_bubble_outline,
-                    label: tr('WhatsApp Channel'),
-                    value: tr('Follow for updates'),
-                    url: AppInfo.whatsappChannelUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.forum_outlined,
-                    label: tr('Reddit'),
-                    value: 'u/${AppInfo.redditHandle}',
-                    url: AppInfo.redditUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.star_rate_rounded,
-                    label: tr('Review on Google Play'),
-                    value: tr('Rate {0} — it helps others find it', [AppInfo.name]),
-                    onTap: () => _openPlayStore(context),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.rate_review_outlined,
-                    label: tr('Leave feedback'),
-                    value: tr('Public testimonial page'),
-                    url: AppInfo.testimonialUrl,
-                  ),
-                ],
-              ),
-            ),
-
-            _sectionLabel(context, tr('Project')),
-            AppCard(
-              child: Column(
-                children: [
-                  _LinkTile(
-                    icon: Icons.language_rounded,
-                    label: tr('Website'),
-                    value: 'xpenc.in',
-                    url: AppInfo.websiteUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.code_rounded,
-                    label: tr('Source code'),
-                    value: 'PATILYASHH/XPENC',
-                    url: AppInfo.repoUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.system_update_alt_rounded,
-                    label: tr('Latest release'),
-                    value: tr('Google Play or F-Droid'),
-                    onTap: () => _GetUpdateSheet.show(context),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.share_rounded,
-                    label: tr('Share XPENC'),
-                    value: tr('Send the Play Store link to a friend'),
-                    onTap: () => _shareApp(context),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.bug_report_outlined,
-                    label: tr('Report a bug'),
-                    value: tr('Open an issue on GitHub'),
-                    url: AppInfo.issuesUrl,
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.gavel_rounded,
-                    label: AppInfo.licenseName,
-                    value: tr('Free & open source'),
-                    url: AppInfo.licenseUrl,
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-            const Center(child: _PoweredByTag()),
-            const SizedBox(height: 14),
-            Center(
-              child: Text(
-                AppInfo.copyright,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+                Divider(height: 1, indent: 60, color: cs.outline),
+                _LinkTile(
+                  icon: Icons.language_rounded,
+                  label: tr('Website'),
+                  value: 'xpenc.in',
+                  url: AppInfo.websiteUrl,
                 ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Center(
-              child: Tr(
-                'Privacy-first · built with Flutter',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  letterSpacing: 0.4,
+                Divider(height: 1, indent: 60, color: cs.outline),
+                _LinkTile(
+                  icon: Icons.bug_report_outlined,
+                  label: tr('Report a bug'),
+                  value: tr('Open an issue on GitHub'),
+                  url: AppInfo.issuesUrl,
                 ),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                _LinkTile(
+                  icon: Icons.share_rounded,
+                  label: tr('Share XPENC'),
+                  value: tr('Send the app link to a friend'),
+                  onTap: () => _shareApp(context),
+                ),
+                Divider(height: 1, indent: 60, color: cs.outline),
+                _LinkTile(
+                  icon: Icons.gavel_rounded,
+                  label: AppInfo.licenseName,
+                  value: tr('Free & open source'),
+                  url: AppInfo.licenseUrl,
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 28),
+          Center(
+            child: Text(
+              AppInfo.copyright,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: cs.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Center(
+            child: Tr(
+              'Privacy-first · Built with Flutter',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: cs.onSurfaceVariant,
+                letterSpacing: 0.4,
               ),
             ),
+          ),
         ],
       ),
     );
@@ -304,68 +223,6 @@ class AboutScreen extends StatelessWidget {
           color: theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.1,
-        ),
-      ),
-    );
-  }
-}
-
-/// "Powered by ExoSynk Labs" — the team behind XPENC; opens their page.
-class _PoweredByTag extends StatelessWidget {
-  const _PoweredByTag();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final style = theme.textTheme.labelMedium?.copyWith(
-      color: cs.onSurfaceVariant,
-    );
-    return Semantics(
-      link: true,
-      label: tr('Powered by {0}', [AppInfo.labsName]),
-      excludeSemantics: true,
-      child: Material(
-        color: cs.surfaceContainerHighest,
-        shape: const StadiumBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => openLink(context, AppInfo.labsUrl),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 8, 12, 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                AppIcon(Icons.bolt_rounded, size: 15, color: cs.onSurface),
-                const SizedBox(width: 6),
-                // Wraps rather than overflows at a large text size.
-                Flexible(
-                  child: Text.rich(
-                    TextSpan(
-                      text: tr('Powered by '),
-                      children: [
-                        TextSpan(
-                          text: AppInfo.labsName,
-                          style: TextStyle(
-                            color: cs.onSurface,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
-                    style: style,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                AppIcon(
-                  Icons.open_in_new_rounded,
-                  size: 13,
-                  color: cs.onSurfaceVariant,
-                ),
-              ],
-            ),
-          ),
         ),
       ),
     );
@@ -408,93 +265,18 @@ class _VersionPill extends StatelessWidget {
   }
 }
 
-/// The Play Store app when it's installed (`market://`), the web listing
-/// otherwise — F-Droid-only phones often have no Play Store at all.
-Future<void> _openPlayStore(BuildContext context) async {
-  if (await tryLaunchUrl(AppInfo.playStoreMarketUrl)) return;
-  if (!context.mounted) return;
-  await openLink(context, AppInfo.playStoreUrl);
-}
-
-/// The system share sheet with the Play Store link — WhatsApp, Instagram,
-/// SMS, whatever the user has installed.
+/// The system share sheet with the Play Store link.
 Future<void> _shareApp(BuildContext context) async {
   final box = context.findRenderObject() as RenderBox?;
   await SharePlus.instance.share(
     ShareParams(
       text: AppInfo.shareText,
       subject: AppInfo.name,
-      // Tablets anchor the share popover here; ignored on phones.
       sharePositionOrigin: box == null
           ? null
           : box.localToGlobal(Offset.zero) & box.size,
     ),
   );
-}
-
-/// "Latest release" — where to get updates. Play first: most installs come
-/// from there and it updates automatically.
-class _GetUpdateSheet extends StatelessWidget {
-  const _GetUpdateSheet();
-
-  static Future<void> show(BuildContext context) => showAppSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (_) => const _GetUpdateSheet(),
-  );
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Tr(
-              'Get the latest version',
-              style: theme.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              tr('Update from the store you installed {0} from. '
-              'Play and F-Droid sign the app differently, so one can\'t '
-              'update the other.', [AppInfo.name]),
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: cs.onSurfaceVariant,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 16),
-            AppCard(
-              child: Column(
-                children: [
-                  _LinkTile(
-                    icon: Icons.shop_rounded,
-                    label: tr('Google Play'),
-                    value: tr('Updates automatically'),
-                    onTap: () => _openPlayStore(context),
-                  ),
-                  Divider(height: 1, indent: 60, color: cs.outline),
-                  _LinkTile(
-                    icon: Icons.storefront_outlined,
-                    label: tr('F-Droid'),
-                    value: tr('Free & open-source app store'),
-                    url: AppInfo.fdroidUrl,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _LinkTile extends StatelessWidget {
@@ -503,7 +285,6 @@ class _LinkTile extends StatelessWidget {
     required this.label,
     required this.value,
     this.url,
-    this.copyValue,
     this.onTap,
   }) : assert(url != null || onTap != null);
 
@@ -511,13 +292,6 @@ class _LinkTile extends StatelessWidget {
   final String label;
   final String value;
   final String? url;
-
-  /// What lands on the clipboard if nothing can open [url] — e.g. the bare
-  /// email address for a `mailto:` link, rather than the `mailto:` scheme
-  /// itself. Defaults to [url].
-  final String? copyValue;
-
-  /// Used instead of opening [url] — for tiles that open a sheet or share.
   final VoidCallback? onTap;
 
   @override
@@ -541,7 +315,7 @@ class _LinkTile extends StatelessWidget {
         size: 18,
         color: cs.onSurfaceVariant,
       ),
-      onTap: onTap ?? () => openLink(context, url!, copyValue: copyValue),
+      onTap: onTap ?? () => openLink(context, url!),
     );
   }
 }
