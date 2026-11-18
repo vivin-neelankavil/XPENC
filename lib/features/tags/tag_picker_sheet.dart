@@ -88,11 +88,8 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
                   Expanded(
                     child: Tr('Tags', style: theme.textTheme.titleLarge),
                   ),
-                  IconButton(
-                    icon: const AppIcon(Icons.add_rounded),
-                    tooltip: tr('New tag'),
-                    onPressed: _createNewTag,
-                  ),
+                  _DottedNewTagButton(onPressed: _createNewTag),
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(_selected),
                     child: const Tr('Done'),
@@ -171,18 +168,6 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
                       spacing: 10,
                       runSpacing: 10,
                       children: [
-                        ActionChip(
-                          avatar: AppIcon(
-                            Icons.add_rounded,
-                            size: 16,
-                            color: theme.colorScheme.primary,
-                          ),
-                          label: Tr(
-                            'New tag',
-                            style: TextStyle(color: theme.colorScheme.primary),
-                          ),
-                          onPressed: _createNewTag,
-                        ),
                         for (final tag in tags)
                           FilterChip(
                             label: Text(tag.name),
@@ -209,6 +194,114 @@ class _TagPickerSheetState extends ConsumerState<TagPickerSheet> {
         ),
       ),
     );
+  }
+}
+
+/// A compact button with a dotted outline border and "+ New tag" label.
+class _DottedNewTagButton extends StatelessWidget {
+  const _DottedNewTagButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = theme.colorScheme.primary;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: CustomPaint(
+          painter: _DottedBorderPainter(
+            color: color,
+            strokeWidth: 1.4,
+            radius: 18,
+            dashLength: 2.5,
+            dashGap: 3.5,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AppIcon(Icons.add_rounded, size: 16, color: color),
+                const SizedBox(width: 4),
+                Tr(
+                  'New tag',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DottedBorderPainter extends CustomPainter {
+  const _DottedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1.4,
+    this.radius = 18,
+    this.dashLength = 2.5,
+    this.dashGap = 3.5,
+  });
+
+  final Color color;
+  final double strokeWidth;
+  final double radius;
+  final double dashLength;
+  final double dashGap;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= strokeWidth || size.height <= strokeWidth) return;
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final half = strokeWidth / 2;
+    final rect = Rect.fromLTWH(
+      half,
+      half,
+      size.width - strokeWidth,
+      size.height - strokeWidth,
+    );
+    final rrect = RRect.fromRectAndRadius(
+      rect,
+      Radius.circular(radius > half ? radius - half : radius),
+    );
+    final path = Path()..addRRect(rrect);
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final length = (distance + dashLength < metric.length)
+            ? dashLength
+            : metric.length - distance;
+        canvas.drawPath(metric.extractPath(distance, distance + length), paint);
+        distance += dashLength + dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DottedBorderPainter oldDelegate) {
+    return oldDelegate.color != color ||
+        oldDelegate.strokeWidth != strokeWidth ||
+        oldDelegate.radius != radius ||
+        oldDelegate.dashLength != dashLength ||
+        oldDelegate.dashGap != dashGap;
   }
 }
 

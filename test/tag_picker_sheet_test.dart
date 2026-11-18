@@ -35,7 +35,7 @@ void main() {
 
     expect(find.text('Travel'), findsOneWidget);
     expect(find.text('New tag'), findsOneWidget);
-    expect(find.byIcon(Icons.add_rounded), findsWidgets);
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(seconds: 1));
@@ -48,8 +48,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
     }
 
-    // Tap the 'New tag' chip
-    await tester.tap(find.byType(ActionChip));
+    // Tap the '+' button near Done
+    await tester.tap(find.byIcon(Icons.add_rounded));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
 
