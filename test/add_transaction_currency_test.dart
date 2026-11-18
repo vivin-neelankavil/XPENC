@@ -154,7 +154,7 @@ void main() {
       for (final k in keys.split('')) {
         await tester.tap(
           find.descendant(
-            of: find.byType(AmountKeypadGrid),
+            of: find.byWidgetPredicate((w) => w is AmountKeypadGrid),
             matching: find.text(k),
           ),
         );
@@ -185,7 +185,7 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await tester.tap(
           find.descendant(
-            of: find.byType(AmountKeypadGrid),
+            of: find.byWidgetPredicate((w) => w is AmountKeypadGrid),
             matching: find.byIcon(Icons.backspace_outlined),
           ),
         );

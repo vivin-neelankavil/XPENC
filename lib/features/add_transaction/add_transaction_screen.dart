@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_icons.dart';
+import '../../core/budget_cycle.dart';
 import '../../core/layout/desktop.dart';
 import '../../core/platform/stored_images.dart';
 import '../../core/security/nct.dart';
@@ -27,6 +28,7 @@ import '../payees/payee_picker_sheet.dart';
 import '../persons/person_avatar.dart';
 import '../settings/currency_picker_sheet.dart';
 import '../tags/tag_picker_sheet.dart';
+import 'amount_buffer.dart';
 import 'date_time_combine.dart';
 import 'receipt_storage.dart';
 import '../../core/widgets/nav_bar_inset.dart';
@@ -87,6 +89,10 @@ class _PaymentLegEntry {
 /// transaction — reached by picking a template from the ➕ button's choice
 /// sheet. Same as duplicating: the date is always today, and there is no
 /// receipt to carry over.
+enum _AddScreenStep { operation, keypad }
+
+enum _OperationTab { incomes, expenses, accounts }
+
 class AddTransactionScreen extends ConsumerStatefulWidget {
   const AddTransactionScreen({
     this.transactionId,
@@ -145,6 +151,11 @@ class AddTransactionScreen extends ConsumerStatefulWidget {
 
 class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
   late TxType _type;
+  _AddScreenStep _step = _AddScreenStep.operation;
+  _OperationTab _operationTab = _OperationTab.expenses;
+  String _calcBuffer = '';
+  double? _firstOperand;
+  String? _pendingOperator;
 
   /// The main amount's buffer — same [AmountKeypadController] used for every
   /// other money field on this screen, so a prefilled edit value ("15.44")
@@ -351,6 +362,25 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                 initial == TxType.transfer))
         ? initial!
         : TxType.expense;
+
+    if (_type == TxType.income) {
+      _operationTab = _OperationTab.incomes;
+    } else if (_type == TxType.transfer) {
+      _operationTab = _OperationTab.accounts;
+    } else {
+      _operationTab = _OperationTab.expenses;
+    }
+
+    _step = (_isEditing ||
+            widget.duplicateFromId != null ||
+            widget.templateId != null ||
+            widget.plannedCostId != null ||
+            widget.initialAmount != null ||
+            widget.initialAccountId != null ||
+            widget.initialToAccountId != null ||
+            widget.initialType != null)
+        ? _AddScreenStep.keypad
+        : _AddScreenStep.operation;
     _noteFocus.addListener(_onFieldFocusChanged);
     if (_isEditing) {
       _loading = true;
@@ -521,6 +551,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     // A transfer can't leave from the account it's going to.
     if (txs.first.accountId == _toAccountId) return;
     setState(() => _accountId = txs.first.accountId);
+  }
+
+  void _ensureDefaultAccount() {
+    if (_accountId != null) return;
+    final accounts = ref.read(accountsProvider).valueOrNull ?? [];
+    if (accounts.isNotEmpty) {
+      _accountId = accounts.first.id;
+    }
   }
 
   void _onFieldFocusChanged() => setState(() {});
@@ -740,6 +778,130 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     _activeAmountCtrl.applyBackspace();
     _afterAmountTyped();
   });
+
+  void _onCalcDigit(String digit) {
+    if (!identical(_activeAmountCtrl, _mainAmountCtrl)) {
+      _onKey(digit);
+      return;
+    }
+    setState(() {
+      _calcBuffer = AmountBuffer.applyKey(_calcBuffer, digit);
+      final parsed = double.tryParse(_calcBuffer) ?? 0.0;
+      _mainAmountCtrl.setAmount(Money.fromRupees(parsed));
+      _afterAmountTyped();
+    });
+  }
+
+  void _onCalcOperator(String op) {
+    if (!identical(_activeAmountCtrl, _mainAmountCtrl)) return;
+    setState(() {
+      if (_calcBuffer.isEmpty && _pendingOperator != null) {
+        _pendingOperator = op;
+        return;
+      }
+      final currentVal = _calcBuffer.isNotEmpty
+          ? (double.tryParse(_calcBuffer) ?? 0.0)
+          : (_mainAmountCtrl.amount.paise / 100.0);
+      if (_firstOperand == null) {
+        _firstOperand = currentVal;
+      } else if (_pendingOperator != null) {
+        switch (_pendingOperator) {
+          case '+':
+            _firstOperand = _firstOperand! + currentVal;
+            break;
+          case '-':
+            _firstOperand = _firstOperand! - currentVal;
+            break;
+          case '×':
+            _firstOperand = _firstOperand! * currentVal;
+            break;
+          case '÷':
+            _firstOperand = currentVal != 0 ? _firstOperand! / currentVal : _firstOperand!;
+            break;
+        }
+      }
+      _pendingOperator = op;
+      _calcBuffer = '';
+      _mainAmountCtrl.setAmount(Money.fromRupees(_firstOperand!));
+      _afterAmountTyped();
+    });
+  }
+
+  void _onCalcBackspace() {
+    if (!identical(_activeAmountCtrl, _mainAmountCtrl)) {
+      _onBackspace();
+      return;
+    }
+    setState(() {
+      if (_calcBuffer.isNotEmpty) {
+        _calcBuffer = AmountBuffer.applyBackspace(_calcBuffer);
+        final parsed = double.tryParse(_calcBuffer) ?? 0.0;
+        _mainAmountCtrl.setAmount(Money.fromRupees(parsed));
+        _afterAmountTyped();
+      } else if (_pendingOperator != null) {
+        _pendingOperator = null;
+        if (_firstOperand != null) {
+          _calcBuffer = _firstOperand! % 1 == 0
+              ? _firstOperand!.toInt().toString()
+              : _firstOperand!.toString();
+          _firstOperand = null;
+        }
+      } else {
+        _onBackspace();
+      }
+    });
+  }
+
+  void _onCalcCurrency() {
+    if (!identical(_activeAmountCtrl, _mainAmountCtrl)) return;
+    setState(() {
+      if (_calcBuffer.isNotEmpty && !_calcBuffer.contains('.')) {
+        _calcBuffer = '${_calcBuffer}00';
+        final parsed = double.tryParse(_calcBuffer) ?? 0.0;
+        _mainAmountCtrl.setAmount(Money.fromRupees(parsed));
+        _afterAmountTyped();
+      }
+    });
+  }
+
+  void _onCalcSubmit() {
+    if (_pendingOperator != null && _calcBuffer.isNotEmpty) {
+      final currentVal = double.tryParse(_calcBuffer) ?? 0.0;
+      switch (_pendingOperator) {
+        case '+':
+          _firstOperand = (_firstOperand ?? 0.0) + currentVal;
+          break;
+        case '-':
+          _firstOperand = (_firstOperand ?? 0.0) - currentVal;
+          break;
+        case '×':
+          _firstOperand = (_firstOperand ?? 0.0) * currentVal;
+          break;
+        case '÷':
+          _firstOperand = currentVal != 0 ? (_firstOperand ?? 0.0) / currentVal : _firstOperand;
+          break;
+      }
+      _mainAmountCtrl.setAmount(Money.fromRupees(_firstOperand ?? 0.0));
+      _pendingOperator = null;
+      _firstOperand = null;
+      _calcBuffer = '';
+    }
+    _save();
+  }
+
+  String _formatAmountDisplay(Money amount, Currency? txCurrency) {
+    final currencySymbol = txCurrency?.symbol ?? '₹';
+    if (_pendingOperator != null) {
+      final firstStr = _firstOperand != null
+          ? (_firstOperand! % 1 == 0 ? _firstOperand!.toInt().toString() : _firstOperand!.toStringAsFixed(2))
+          : '0';
+      final secondStr = _calcBuffer.isEmpty ? '' : _calcBuffer;
+      return '$firstStr $_pendingOperator $secondStr $currencySymbol'.trim();
+    }
+    return txCurrency == null
+        ? MoneyFormat.symbol(amount)
+        : MoneyFormat.symbolIn(amount, txCurrency);
+  }
 
   void _afterAmountTyped() {
     if (identical(_activeAmountCtrl, _foreignAmountCtrl)) {
@@ -996,23 +1158,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
 
   // ── Custom icon / emoji ──────────────────────────────────────────────────
 
-  /// AppBar shortcut, next to the tags button — filled with the picked
-  /// icon/emoji once one is set. Tapping when empty opens the source choice
-  /// sheet directly; tapping when set opens a small preview sheet with
-  /// change/remove, same shape as [_receiptAction]/[_openReceiptSheet].
-  Widget _customIconAction(ThemeData theme) {
-    final value = _customIcon;
-    return IconButton(
-      icon: value == null
-          ? AppIcon(
-              Icons.emoji_emotions_outlined,
-              color: theme.colorScheme.onSurfaceVariant,
-            )
-          : CustomIconBadge(value: value, size: 26),
-      tooltip: value == null ? tr('Add an icon or emoji') : tr('Icon set'),
-      onPressed: value == null ? _pickCustomIcon : _openCustomIconSheet,
-    );
-  }
 
   Future<void> _pickCustomIcon() async {
     final choice = await showAppSheet<_CustomIconSource>(
@@ -1200,21 +1345,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     if (previous != null) _deleteQuietly(previous);
   }
 
-  /// AppBar shortcut — filled once a receipt is attached. Tapping when empty
-  /// opens the camera/gallery choice sheet; tapping when attached opens a
-  /// small preview sheet with replace/remove, instead of a card buried in
-  /// the field list.
-  Widget _receiptAction(ThemeData theme) {
-    final attached = _imagePath != null;
-    return IconButton(
-      icon: AppIcon(
-        attached ? Icons.camera_alt_rounded : Icons.camera_alt_outlined,
-        color: attached ? theme.colorScheme.primary : null,
-      ),
-      tooltip: attached ? tr('Receipt attached') : tr('Attach receipt'),
-      onPressed: attached ? _openReceiptSheet : _showAttachReceiptSheet,
-    );
-  }
 
   Future<void> _openReceiptSheet() async {
     final path = _imagePath;
@@ -2464,296 +2594,1114 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     return SecureWhile(
       active: _isNct,
       holdBack: false,
-      child: Scaffold(
-        appBar: AppTopBar(
-          leading: IconButton(
-            icon: const AppIcon(Icons.close_rounded),
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-          title: Text(_isEditing ? tr('Edit') : tr('Add')),
-          // Tags and receipt live here, not buried at the bottom of the
-          // scrollable field list, so they stay reachable in one tap no matter
-          // how far the user has scrolled or whether the keypad is covering
-          // the rest of the screen.
-          actions: _loading
-              ? null
-              : [
-                  _customIconAction(theme),
-                  _tagsAction(theme),
-                  _receiptAction(theme),
-                  if (_isEditing)
-                    IconButton(
-                      icon: const AppIcon(Icons.delete_outline),
-                      tooltip: tr('Delete'),
-                      onPressed: _confirmDelete,
-                    ),
-                  TextButton(onPressed: _save, child: const Tr('Save')),
-                ],
-        ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : SafeArea(
-                child: GestureDetector(
-                  // Tapping anywhere that isn't Note/Payee drops their focus, so
-                  // the system keyboard closes and the amount keypad returns —
-                  // the two must never be on screen at once (see _textFieldFocused).
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => FocusScope.of(context).unfocus(),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: SegmentedButton<TxType>(
-                            segments: const [
-                              ButtonSegment(
-                                value: TxType.expense,
-                                label: Tr('Money out'),
-                              ),
-                              ButtonSegment(
-                                value: TxType.income,
-                                label: Tr('Money in'),
-                              ),
-                              ButtonSegment(
-                                value: TxType.transfer,
-                                label: Tr('Transfer'),
-                              ),
-                            ],
-                            selected: {_type},
-                            showSelectedIcon: false,
-                            onSelectionChanged: (s) => setState(() {
-                              _type = s.first;
-                              // category is meaningless on type change
-                              _categoryId = null;
-                              if (_type != TxType.transfer) _toAccountId = null;
-                              // Split is expense-only.
-                              if (_type != TxType.expense) {
-                                _isSplit = false;
-                              }
-                            }),
-                          ),
+      child: PopScope(
+        canPop: _step == _AddScreenStep.operation || _isEditing,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (_step == _AddScreenStep.keypad && !_isEditing) {
+            setState(() => _step = _AddScreenStep.operation);
+          }
+        },
+        child: Scaffold(
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : SafeArea(
+                  child: _step == _AddScreenStep.operation
+                      ? _buildOperationStep(theme, accountMap, categoryMap)
+                      : _buildKeypadStep(
+                          theme,
+                          accountMap,
+                          categoryMap,
+                          txCurrency,
+                          amount,
                         ),
-                      ),
-                      const SizedBox(height: 24),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                        child: GestureDetector(
-                          onTap: () => _activateAmountCtrl(_mainAmountCtrl),
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              key: const Key('amountDisplay'),
-                              txCurrency == null
-                                  ? MoneyFormat.symbol(amount)
-                                  : MoneyFormat.symbolIn(amount, txCurrency),
-                              style: theme.textTheme.displayMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                                color: colorForTxType(_type),
-                                fontFeatures: kTabularFigures,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (_desktop)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Tr(
-                            'Type the amount · Enter to save · Esc to close',
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      _selectedTagsChips(),
-                      const SizedBox(height: 20),
-                      Expanded(
-                        child: SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(
-                            20,
-                            0,
-                            20,
-                            8,
-                          ).plusNavBar(context),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: _buildPickers(accountMap, categoryMap),
-                          ),
-                        ),
-                      ),
-                      if (!_textFieldFocused && !_desktop)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-                          child: AmountKeypadGrid(
-                            onDigit: _onKey,
-                            onBackspace: _onBackspace,
-                          ),
-                        ),
-                    ],
-                  ),
                 ),
-              ),
+        ),
       ),
     );
   }
 
-  List<Widget> _buildPickers(
+  Widget _buildOperationStep(
+    ThemeData theme,
     Map<int, AccountRow> accountMap,
     Map<int, CategoryRow> categoryMap,
   ) {
-    final tiles = <Widget>[];
+    return Column(
+      children: [
+        Center(
+          child: Container(
+            width: 36,
+            height: 4,
+            margin: const EdgeInsets.only(top: 10, bottom: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Align(
+                alignment: Alignment.center,
+                child: Text(
+                  tr('Add an operation'),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const AppIcon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              _operationTabButton(theme, tr('Incomes'), _OperationTab.incomes),
+              _operationTabButton(theme, tr('Expenses'), _OperationTab.expenses),
+              _operationTabButton(theme, tr('Accounts'), _OperationTab.accounts),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: _buildOperationGrid(theme, accountMap, categoryMap),
+        ),
+      ],
+    );
+  }
 
-    if (_mode != null) {
-      tiles.add(_modeToggleTile(_mode!));
-      tiles.add(const SizedBox(height: 12));
-      final splitTile = _splitWithTile(_mode!);
-      if (splitTile != null) {
-        tiles.add(splitTile);
-        tiles.add(const SizedBox(height: 12));
+  Widget _operationTabButton(
+    ThemeData theme,
+    String label,
+    _OperationTab tab,
+  ) {
+    final isSelected = _operationTab == tab;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _operationTab = tab),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isSelected
+                    ? (tab == _OperationTab.expenses
+                        ? Colors.redAccent
+                        : theme.colorScheme.primary)
+                    : Colors.transparent,
+                width: 2.5,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              color: isSelected
+                  ? theme.colorScheme.onSurface
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOperationGrid(
+    ThemeData theme,
+    Map<int, AccountRow> accountMap,
+    Map<int, CategoryRow> categoryMap,
+  ) {
+    if (_operationTab == _OperationTab.accounts) {
+      final accounts = ref.watch(accountsProvider).valueOrNull ?? [];
+      if (accounts.isEmpty) {
+        return Center(
+          child: Text(
+            tr('No accounts yet'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        );
+      }
+      return GridView.builder(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16).plusNavBar(context),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 2.1,
+        ),
+        itemCount: accounts.length,
+        itemBuilder: (context, index) {
+          final acc = accounts[index];
+          final color = Color(acc.colorValue);
+          return InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () {
+              setState(() {
+                _type = TxType.transfer;
+                _accountId = acc.id;
+                _step = _AddScreenStep.keypad;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: AppIcon(
+                        AppIcons.resolve(acc.iconKey),
+                        color: color,
+                        size: 22,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          acc.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Builder(
+                          builder: (context) {
+                            final balance = acc.linkedAccountId != null
+                                ? (accountMap[acc.linkedAccountId]?.currentBalance ??
+                                    const Money.zero())
+                                : acc.currentBalance;
+                            return Text(
+                              MoneyFormat.symbol(balance),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: balance.isPositive
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.onSurfaceVariant,
+                                fontWeight: balance.isPositive
+                                    ? FontWeight.w600
+                                    : FontWeight.w400,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    final isExpense = _operationTab == _OperationTab.expenses;
+    final kind = isExpense ? CategoryKind.expense : CategoryKind.income;
+    final topCategories = categoryMap.values
+        .where((c) => c.kind == kind && c.parentId == null && !c.isArchived)
+        .toList();
+
+    final spendMap = isExpense
+        ? (ref.watch(spendByCategoryProvider).valueOrNull ?? const {})
+        : const <int, Money>{};
+
+    final allTxs = !isExpense
+        ? (ref.watch(allTransactionsProvider).valueOrNull ?? const [])
+        : const <TransactionRow>[];
+
+    final month = ref.watch(selectedMonthProvider);
+    final startDay = ref.watch(budgetStartDayProvider);
+    final period = budgetPeriodFor(month, startDay);
+
+    final incomeMap = <int, Money>{};
+    if (!isExpense) {
+      for (final t in allTxs) {
+        if (t.type == TxType.income &&
+            t.categoryId != null &&
+            !t.date.isBefore(period.start) &&
+            !t.date.isAfter(period.end)) {
+          incomeMap[t.categoryId!] =
+              (incomeMap[t.categoryId!] ?? const Money.zero()) + t.amount;
+        }
       }
     }
 
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16).plusNavBar(context),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 2.1,
+      ),
+      itemCount: topCategories.length,
+      itemBuilder: (context, index) {
+        final cat = topCategories[index];
+        final color = Color(cat.colorValue);
+
+        Money total;
+        if (isExpense) {
+          total = spendMap[cat.id] ?? const Money.zero();
+          for (final child in categoryMap.values) {
+            if (child.parentId == cat.id) {
+              total = total + (spendMap[child.id] ?? const Money.zero());
+            }
+          }
+        } else {
+          total = incomeMap[cat.id] ?? const Money.zero();
+          for (final child in categoryMap.values) {
+            if (child.parentId == cat.id) {
+              total = total + (incomeMap[child.id] ?? const Money.zero());
+            }
+          }
+        }
+
+        return InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            setState(() {
+              _type = isExpense ? TxType.expense : TxType.income;
+              _categoryId = cat.id;
+              _ensureDefaultAccount();
+              _step = _AddScreenStep.keypad;
+            });
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: AppIcon(
+                      AppIcons.resolve(cat.iconKey),
+                      color: color,
+                      size: 22,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        cat.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        MoneyFormat.symbol(total),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: total.isPositive
+                              ? (color != Colors.transparent
+                                  ? color
+                                  : theme.colorScheme.primary)
+                              : theme.colorScheme.onSurfaceVariant,
+                          fontWeight: total.isPositive
+                              ? FontWeight.w600
+                              : FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildKeypadStep(
+    ThemeData theme,
+    Map<int, AccountRow> accountMap,
+    Map<int, CategoryRow> categoryMap,
+    Currency? txCurrency,
+    Money amount,
+  ) {
+    final activeCards = <Widget>[];
+    if (_isSplitting) {
+      activeCards.add(_splitEditorCard(categoryMap));
+      activeCards.add(const SizedBox(height: 12));
+    }
+    if (_isHybrid) {
+      activeCards.add(_hybridEditorCard(accountMap));
+      activeCards.add(const SizedBox(height: 12));
+    }
+    if (_isChange) {
+      activeCards.add(_changeEditorCard(accountMap));
+      activeCards.add(const SizedBox(height: 12));
+    }
+    if (_hasForeignCurrency) {
+      activeCards.add(_foreignToggleTile());
+      activeCards.add(const SizedBox(height: 12));
+      activeCards.add(_foreignCurrencyEditorCard());
+      activeCards.add(const SizedBox(height: 12));
+    } else if (_currencyForAccount(_accountId, accountMap) == null) {
+      activeCards.add(_foreignToggleTile());
+      activeCards.add(const SizedBox(height: 12));
+    }
+    if (_isEditing) {
+      final linkedChange = _linkedChangeCard(accountMap);
+      if (linkedChange != null) {
+        activeCards.add(linkedChange);
+        activeCards.add(const SizedBox(height: 12));
+      }
+    }
     if (_type == TxType.transfer) {
-      tiles.add(
-        _pickerTile(
-          icon: AppIcons.resolve('bank'),
-          label: tr('From account'),
-          value: accountMap[_accountId]?.name ?? tr('Select account'),
-          selected: _accountId != null,
-          onTap: () => _pickAccount(isFrom: true),
-        ),
-      );
-      tiles.add(const SizedBox(height: 12));
-      tiles.add(
-        _pickerTile(
-          icon: AppIcons.resolve('transfer'),
-          label: tr('To account'),
-          value: accountMap[_toAccountId]?.name ?? tr('Select account'),
-          selected: _toAccountId != null,
-          onTap: () => _pickAccount(isFrom: false),
-        ),
-      );
       final preview = _crossCurrencyTransferPreview(accountMap);
       if (preview != null) {
-        tiles.add(const SizedBox(height: 8));
-        tiles.add(preview);
+        activeCards.add(preview);
+        activeCards.add(const SizedBox(height: 8));
       }
       final warning = _minimumBalanceWarning(accountMap);
       if (warning != null) {
-        tiles.add(const SizedBox(height: 8));
-        tiles.add(warning);
-      }
-    } else {
-      // A hybrid payment has no single "paid via" account of its own — its
-      // editor below picks each leg's account instead.
-      if (!_isHybrid) {
-        tiles.add(
-          _pickerTile(
-            icon: AppIcons.resolve('wallet'),
-            label: _type == TxType.income ? tr('Deposit to') : tr('Paid via'),
-            value: accountMap[_accountId]?.name ?? tr('Select account'),
-            selected: _accountId != null,
-            onTap: () => _pickAccount(isFrom: true),
-          ),
-        );
-        tiles.add(const SizedBox(height: 12));
-        final warning = _minimumBalanceWarning(accountMap);
-        if (warning != null) {
-          tiles.add(warning);
-          tiles.add(const SizedBox(height: 12));
-        }
-      }
-      // Foreign currency applies to both income and expense (unlike
-      // split/hybrid/change, which are expense-only) and stays available
-      // while editing. Hidden once the account itself already carries a
-      // non-parent currency — the transaction's real amount is already
-      // natively foreign then, so a second manual foreign-currency
-      // annotation on top would be redundant and confusing.
-      if (_currencyForAccount(_accountId, accountMap) == null) {
-        tiles.add(_foreignToggleTile());
-        tiles.add(const SizedBox(height: 12));
-      }
-      if (_type == TxType.expense) {
-        // Editing an existing hybrid payment's legs together isn't
-        // supported here (see the doc on [_isHybridPayment]) — there's
-        // nothing to merge the split toggle with while editing, so that
-        // case keeps the plain single-purpose switch instead.
-        tiles.add(_isEditing ? _splitToggleTile() : _splitModeToggleTile());
-        tiles.add(const SizedBox(height: 12));
-        if (!_isEditing) {
-          // Change only ever makes sense out of a cash account, and only if
-          // there's a second cash-type account (e.g. Coins) for it to land
-          // in — otherwise the toggle leads nowhere. See GitHub #55.
-          final cashAccounts = accountMap.values
-              .where((a) => a.type == AccountType.cash)
-              .length;
-          if (accountMap[_accountId]?.type == AccountType.cash &&
-              cashAccounts >= 2) {
-            tiles.add(_changeToggleTile());
-            tiles.add(const SizedBox(height: 12));
-          }
-        } else {
-          final linkedChange = _linkedChangeCard(accountMap);
-          if (linkedChange != null) {
-            tiles.add(linkedChange);
-            tiles.add(const SizedBox(height: 12));
-          }
-        }
-      }
-      if (_isHybrid) {
-        tiles.add(_hybridEditorCard(accountMap));
-        tiles.add(const SizedBox(height: 12));
-      }
-      if (_isChange) {
-        tiles.add(_changeEditorCard(accountMap));
-        tiles.add(const SizedBox(height: 12));
-      }
-      if (_isForeignCurrency) {
-        tiles.add(_foreignCurrencyEditorCard());
-        tiles.add(const SizedBox(height: 12));
-      }
-      if (_isSplitting) {
-        tiles.add(_splitEditorCard(categoryMap));
-      } else {
-        // A hybrid payment still carries one shared category — see the doc
-        // on [_isHybridPayment] — unlike a category split, which replaces
-        // this picker with one category per row instead.
-        final cat = categoryMap[_categoryId];
-        final parent = cat?.parentId == null
-            ? null
-            : categoryMap[cat!.parentId];
-        // Money in under a spending category is a refund (GitHub #201).
-        final isRefund =
-            _type == TxType.income && cat?.kind == CategoryKind.expense;
-        tiles.add(
-          _pickerTile(
-            icon: AppIcons.resolve(cat?.iconKey ?? 'other'),
-            iconKey: cat?.iconKey,
-            label: isRefund ? tr('Refund to') : tr('Category'),
-            value: cat == null
-                ? tr('Select category')
-                : parent == null
-                ? cat.name
-                : '${parent.name} › ${cat.name}',
-            selected: _categoryId != null,
-            onTap: _pickCategory,
-          ),
-        );
+        activeCards.add(warning);
+        activeCards.add(const SizedBox(height: 8));
       }
     }
 
-    tiles.add(const SizedBox(height: 12));
-    tiles.add(_dateTile());
-    if (_type == TxType.expense || _type == TxType.income) {
-      tiles.add(const SizedBox(height: 12));
-      tiles.add(_payeeCard());
+    final noteText = _noteController.text.trim();
+    final payeeText = _payeeController.text.trim();
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Center(
+                  child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: IconButton(
+                      icon: const AppIcon(Icons.close_rounded, size: 20),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      tooltip: tr('Close'),
+                      onPressed: () => Navigator.of(context).maybePop(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Top date bar: < Today, November 18 >
+          _dateBar(theme),
+          // Side-by-side cards: Account & Category
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+            child: _sideBySideCards(theme, accountMap, categoryMap),
+          ),
+          // Subcategories pills
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _subcategoriesRow(theme, categoryMap),
+          ),
+          const SizedBox(height: 8),
+          // Centered Hero Amount
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+            child: GestureDetector(
+              onTap: () => _activateAmountCtrl(_mainAmountCtrl),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  key: const Key('amountDisplay'),
+                  _formatAmountDisplay(amount, txCurrency),
+                  style: theme.textTheme.displayMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: colorForTxType(_type),
+                    fontFeatures: kTabularFigures,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (payeeText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 1),
+              child: Text(
+                payeeText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          if (noteText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 1),
+              child: Text(
+                noteText,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          _selectedTagsChips(),
+          if (activeCards.isNotEmpty)
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: activeCards,
+                ),
+              ),
+            )
+          else
+            const Spacer(),
+          // Action toolbar: 📎 💬 🏷️
+          _actionToolbar(theme),
+          // Calculator Keypad
+          if (!_textFieldFocused && !_desktop)
+            Padding(
+              padding:
+                  const EdgeInsets.fromLTRB(12, 4, 12, 8).plusNavBar(context),
+              child: CalculatorKeypadGrid(
+                onDigit: _onCalcDigit,
+                onOperator: _onCalcOperator,
+                onBackspace: _onCalcBackspace,
+                onSubmit: _onCalcSubmit,
+                onMore: () => _showMoreOptionsSheet(context),
+                onCurrency: _onCalcCurrency,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dateBar(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const AppIcon(Icons.chevron_left_rounded),
+            onPressed: () => setState(() {
+              _date = _date.subtract(const Duration(days: 1));
+            }),
+          ),
+          Expanded(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: _pickDate,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const AppIcon(Icons.calendar_today_rounded, size: 18),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        _formatDateWithRelative(_date),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton(
+                      icon: const AppIcon(Icons.access_time_rounded, size: 18),
+                      tooltip: tr('Change time'),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: _pickTime,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const AppIcon(Icons.chevron_right_rounded),
+            onPressed: () => setState(() {
+              _date = _date.add(const Duration(days: 1));
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateWithRelative(DateTime d) {
+    final now = DateTime.now();
+    final isToday =
+        d.year == now.year && d.month == now.month && d.day == now.day;
+    final yesterday = now.subtract(const Duration(days: 1));
+    final isYesterday = d.year == yesterday.year &&
+        d.month == yesterday.month &&
+        d.day == yesterday.day;
+    final tomorrow = now.add(const Duration(days: 1));
+    final isTomorrow = d.year == tomorrow.year &&
+        d.month == tomorrow.month &&
+        d.day == tomorrow.day;
+
+    final datePart = isToday
+        ? 'Today, ${DateFormat('MMMM d').format(d)}'
+        : isYesterday
+        ? 'Yesterday, ${DateFormat('MMMM d').format(d)}'
+        : isTomorrow
+        ? 'Tomorrow, ${DateFormat('MMMM d').format(d)}'
+        : DateFormat('d MMM yyyy').format(d);
+    final timePart = DateFormat('h:mm a').format(d);
+    return '$datePart, $timePart';
+  }
+
+  Widget _sideBySideCards(
+    ThemeData theme,
+    Map<int, AccountRow> accountMap,
+    Map<int, CategoryRow> categoryMap,
+  ) {
+    final isTransfer = _type == TxType.transfer;
+    final fromAccount = accountMap[_accountId];
+    final toAccount = accountMap[_toAccountId];
+    final category = categoryMap[_categoryId];
+    final categoryColor = category != null
+        ? Color(category.colorValue)
+        : theme.colorScheme.primary;
+
+    return Row(
+      children: [
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: () => _pickAccount(isFrom: true),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isTransfer ? tr('From account') : tr('Account'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      AppIcon(
+                        AppIcons.resolve(fromAccount?.iconKey ?? 'credit_card'),
+                        size: 20,
+                        color: fromAccount != null
+                            ? Color(fromAccount.colorValue)
+                            : theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          fromAccount?.name ?? tr('Select account'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: isTransfer
+                ? () => _pickAccount(isFrom: false)
+                : (_isEditing
+                    ? _pickCategory
+                    : () => setState(() => _step = _AddScreenStep.operation)),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: isTransfer
+                    ? theme.colorScheme.surfaceContainerLow
+                    : categoryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isTransfer
+                      ? theme.colorScheme.outlineVariant.withValues(alpha: 0.5)
+                      : categoryColor.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isTransfer ? tr('To account') : tr('Category'),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: isTransfer
+                          ? theme.colorScheme.onSurfaceVariant
+                          : categoryColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      AppIcon(
+                        isTransfer
+                            ? AppIcons.resolve(toAccount?.iconKey ?? 'credit_card')
+                            : AppIcons.resolve(category?.iconKey ?? 'category'),
+                        size: 20,
+                        color: isTransfer
+                            ? (toAccount != null
+                                ? Color(toAccount.colorValue)
+                                : theme.colorScheme.primary)
+                            : categoryColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          isTransfer
+                              ? (toAccount?.name ?? tr('Select account'))
+                              : (category?.name ?? tr('Select category')),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isTransfer ? null : categoryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _subcategoriesRow(
+    ThemeData theme,
+    Map<int, CategoryRow> categoryMap,
+  ) {
+    if (_type == TxType.transfer || _categoryId == null) {
+      return const SizedBox.shrink();
     }
-    tiles.add(const SizedBox(height: 12));
-    tiles.add(_noteCard());
-    tiles.add(const SizedBox(height: 12));
-    tiles.add(_nctToggleTile());
-    return tiles;
+    final current = categoryMap[_categoryId];
+    if (current == null) return const SizedBox.shrink();
+
+    final int parentId = current.parentId ?? current.id;
+    final parent = categoryMap[parentId] ?? current;
+    final subcategories = categoryMap.values
+        .where((c) => c.parentId == parentId && !c.isArchived)
+        .toList();
+
+    if (subcategories.isEmpty) return const SizedBox.shrink();
+
+    final parentColor = Color(parent.colorValue);
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: SizedBox(
+        height: 36,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: subcategories.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final sub = subcategories[index];
+            final isSelected = _categoryId == sub.id;
+            return ActionChip(
+              label: Text(
+                sub.name,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? parentColor : theme.colorScheme.onSurface,
+                ),
+              ),
+              backgroundColor: isSelected
+                  ? parentColor.withValues(alpha: 0.15)
+                  : theme.colorScheme.surface,
+              side: BorderSide(
+                color: isSelected
+                    ? parentColor
+                    : theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                width: isSelected ? 1.5 : 1,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              onPressed: () {
+                setState(() {
+                  if (isSelected) {
+                    _categoryId = parentId;
+                  } else {
+                    _categoryId = sub.id;
+                  }
+                });
+              },
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _actionToolbar(ThemeData theme) {
+    final hasReceipt = _imagePath != null;
+    final hasNoteOrPayee = _noteController.text.trim().isNotEmpty ||
+        _payeeController.text.trim().isNotEmpty;
+    final hasTags = _tagIds.isNotEmpty;
+
+    return Container(
+      height: 46,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _toolbarItem(
+              theme: theme,
+              icon: Icons.attach_file_rounded,
+              active: hasReceipt,
+              badge: hasReceipt ? '1' : null,
+              tooltip: tr('Receipt'),
+              onTap: _imagePath != null ? _openReceiptSheet : _showAttachReceiptSheet,
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          Expanded(
+            child: _toolbarItem(
+              theme: theme,
+              icon: Icons.chat_bubble_outline_rounded,
+              active: hasNoteOrPayee,
+              tooltip: tr('Note & Payee'),
+              onTap: () => _showNotePayeeSheet(context),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 24,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+          ),
+          Expanded(
+            child: _toolbarItem(
+              theme: theme,
+              icon: Icons.local_offer_outlined,
+              active: hasTags,
+              badge: hasTags ? '${_tagIds.length}' : null,
+              tooltip: tr('Tags'),
+              onTap: _pickTags,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _toolbarItem({
+    required ThemeData theme,
+    required IconData icon,
+    required bool active,
+    String? badge,
+    required String tooltip,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(14),
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: active
+              ? theme.colorScheme.primary.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppIcon(
+                icon,
+                size: 20,
+                color: active
+                    ? theme.colorScheme.primary
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+              if (badge != null) ...[
+                const SizedBox(width: 4),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    badge,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showNotePayeeSheet(BuildContext context) async {
+    final theme = Theme.of(context);
+    await showAppSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+          left: 20,
+          right: 20,
+          top: 8,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              tr('Note & Payee'),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _payeeCard(),
+            const SizedBox(height: 12),
+            _noteCard(),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: Text(tr('Done')),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _showMoreOptionsSheet(BuildContext context) async {
+    final theme = Theme.of(context);
+    final accountMap = ref.read(accountMapProvider);
+
+    await showAppSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (ctx) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.6,
+        minChildSize: 0.35,
+        maxChildSize: 0.9,
+        builder: (context, scrollController) => ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+          children: [
+            Text(
+              tr('More options'),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (_mode != null) ...[
+              _modeToggleTile(_mode!),
+              const SizedBox(height: 12),
+              if (_splitWithTile(_mode!) != null) ...[
+                _splitWithTile(_mode!)!,
+                const SizedBox(height: 12),
+              ],
+            ],
+            if (_type == TxType.expense) ...[
+              _isEditing ? _splitToggleTile() : _splitModeToggleTile(),
+              const SizedBox(height: 12),
+              if (!_isEditing &&
+                  accountMap[_accountId]?.type == AccountType.cash &&
+                  accountMap.values
+                          .where((a) => a.type == AccountType.cash)
+                          .length >=
+                      2) ...[
+                _changeToggleTile(),
+                const SizedBox(height: 12),
+              ],
+            ],
+            if (_currencyForAccount(_accountId, accountMap) == null) ...[
+              _foreignToggleTile(),
+              const SizedBox(height: 12),
+            ],
+            _nctToggleTile(),
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: _customIcon == null
+                  ? const AppIcon(Icons.emoji_emotions_outlined)
+                  : CustomIconBadge(value: _customIcon!, size: 26),
+              title: Text(
+                _customIcon == null
+                    ? tr('Add custom icon or emoji')
+                    : tr('Change icon or emoji'),
+              ),
+              trailing: _customIcon != null
+                  ? IconButton(
+                      icon: const AppIcon(Icons.close_rounded),
+                      onPressed: () {
+                        setState(() => _customIcon = null);
+                        Navigator.of(ctx).pop();
+                      },
+                    )
+                  : const AppIcon(Icons.chevron_right_rounded),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                if (_customIcon == null) {
+                  _pickCustomIcon();
+                } else {
+                  _openCustomIconSheet();
+                }
+              },
+            ),
+            if (_isEditing) ...[
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                icon: const AppIcon(Icons.delete_outline, color: Colors.red),
+                label: Text(
+                  tr('Delete transaction'),
+                  style: const TextStyle(color: Colors.red),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: Colors.red),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _confirmDelete();
+                },
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
   }
 
   /// "Split with" the mode's people — a new expense in a mode that has
@@ -2851,83 +3799,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ? tr('NCT · hidden in lists until held, captures blocked when open')
               : tr('NCT · keep it out of screenshots and recordings'),
         ),
-      ),
-    );
-  }
-
-  /// Like [_pickerTile], but with a second, independent tap target: the
-  /// clock icon opens [_pickTime] without disturbing the date, while the
-  /// rest of the card still opens [_pickDate] — same card, two pickers,
-  /// so adjusting one never has to go through the other (GitHub #124).
-  Widget _dateTile() {
-    final theme = Theme.of(context);
-    return AppCard(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: AppListTile(
-        onTap: _pickDate,
-        leading: AppIcon(
-          Icons.event_outlined,
-          color: theme.colorScheme.onSurfaceVariant,
-        ),
-        title: Tr(
-          'Date',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        subtitle: Text(
-          DateFormat('d MMM yyyy, h:mm a').format(_date),
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: theme.colorScheme.onSurface,
-          ),
-        ),
-        trailing: IconButton(
-          tooltip: tr('Change time'),
-          icon: AppIcon(
-            Icons.access_time_rounded,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-          onPressed: _pickTime,
-        ),
-      ),
-    );
-  }
-
-  /// [iconKey], when set, is drawn instead of [icon] — a category's, which
-  /// may be the user's own emoji.
-  Widget _pickerTile({
-    required IconData icon,
-    String? iconKey,
-    required String label,
-    required String value,
-    required bool selected,
-    required VoidCallback onTap,
-  }) {
-    final theme = Theme.of(context);
-    return AppCard(
-      margin: EdgeInsets.zero,
-      clipBehavior: Clip.antiAlias,
-      child: AppListTile(
-        onTap: onTap,
-        leading: iconKey == null
-            ? AppIcon(icon, color: theme.colorScheme.onSurfaceVariant)
-            : KeyIcon(iconKey, color: theme.colorScheme.onSurfaceVariant),
-        title: Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        subtitle: Text(
-          value,
-          style: theme.textTheme.titleMedium?.copyWith(
-            color: selected
-                ? theme.colorScheme.onSurface
-                : theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        trailing: const AppIcon(Icons.chevron_right_rounded),
       ),
     );
   }
@@ -3063,20 +3934,6 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     }
   }
 
-  /// AppBar shortcut — badged with the count once any tag is picked. Cuts
-  /// across category/account and opens the same multi-select sheet as before.
-  Widget _tagsAction(ThemeData theme) {
-    final count = _tagIds.length;
-    return IconButton(
-      icon: Badge(
-        isLabelVisible: count > 0,
-        label: Text('$count'),
-        child: AppIcon(count > 0 ? Icons.sell_rounded : Icons.sell_outlined),
-      ),
-      tooltip: tr('Tags'),
-      onPressed: _pickTags,
-    );
-  }
 
   /// Picked tags shown as chips right under the amount — visible at a glance
   /// without opening the picker sheet again, and without eating space in the
@@ -3632,6 +4489,352 @@ class _CategoryPickerSheetState extends ConsumerState<_CategoryPickerSheet> {
               },
             ),
         ],
+      ),
+    );
+  }
+}
+
+class CalculatorKeypadGrid extends AmountKeypadGrid {
+  const CalculatorKeypadGrid({
+    required super.onDigit,
+    required super.onBackspace,
+    required this.onOperator,
+    required this.onSubmit,
+    required this.onMore,
+    required this.onCurrency,
+    super.key,
+  });
+
+  final ValueChanged<String> onOperator;
+  final VoidCallback onSubmit;
+  final VoidCallback onMore;
+  final VoidCallback onCurrency;
+
+  @override
+  Widget build(BuildContext context) {
+    const keyHeight = 54.0;
+    const spacing = 6.0;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Columns 1-4
+        Expanded(
+          flex: 4,
+          child: Column(
+            children: [
+              // Row 1: ÷, 7, 8, 9
+              Row(
+                children: [
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '÷',
+                      () => onOperator('÷'),
+                      height: keyHeight,
+                      isOp: true,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '7',
+                      () => onDigit('7'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '8',
+                      () => onDigit('8'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '9',
+                      () => onDigit('9'),
+                      height: keyHeight,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: spacing),
+              // Row 2: ×, 4, 5, 6
+              Row(
+                children: [
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '×',
+                      () => onOperator('×'),
+                      height: keyHeight,
+                      isOp: true,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '4',
+                      () => onDigit('4'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '5',
+                      () => onDigit('5'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '6',
+                      () => onDigit('6'),
+                      height: keyHeight,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: spacing),
+              // Row 3: -, 1, 2, 3
+              Row(
+                children: [
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '-',
+                      () => onOperator('-'),
+                      height: keyHeight,
+                      isOp: true,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '1',
+                      () => onDigit('1'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '2',
+                      () => onDigit('2'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '3',
+                      () => onDigit('3'),
+                      height: keyHeight,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: spacing),
+              // Row 4: +, ₹, 0, .
+              Row(
+                children: [
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '+',
+                      () => onOperator('+'),
+                      height: keyHeight,
+                      isOp: true,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '₹',
+                      onCurrency,
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '0',
+                      () => onDigit('0'),
+                      height: keyHeight,
+                    ),
+                  ),
+                  const SizedBox(width: spacing),
+                  Expanded(
+                    child: _calcKey(
+                      context,
+                      '.',
+                      () => onDigit('.'),
+                      height: keyHeight,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: spacing),
+        // Column 5: ⌫, ⋯, and tall ✓
+        Expanded(
+          flex: 1,
+          child: Column(
+            children: [
+              _calcIconKey(
+                context,
+                Icons.backspace_outlined,
+                onBackspace,
+                height: keyHeight,
+              ),
+              const SizedBox(height: spacing),
+              _calcIconKey(
+                context,
+                Icons.more_horiz_rounded,
+                onMore,
+                height: keyHeight,
+              ),
+              const SizedBox(height: spacing),
+              _submitKey(
+                context,
+                onSubmit,
+                height: (keyHeight * 2) + spacing,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _calcKey(
+    BuildContext context,
+    String label,
+    VoidCallback onTap, {
+    required double height,
+    bool isOp = false,
+  }) {
+    final theme = Theme.of(context);
+    return _KeyBase(
+      height: height,
+      color: isOp
+          ? theme.colorScheme.surfaceContainer
+          : theme.colorScheme.surfaceContainerHighest,
+      onTap: onTap,
+      child: Center(
+        child: Text(
+          label,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            fontSize: isOp ? 20 : 18,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _calcIconKey(
+    BuildContext context,
+    IconData icon,
+    VoidCallback onTap, {
+    required double height,
+  }) {
+    final theme = Theme.of(context);
+    return _KeyBase(
+      height: height,
+      color: theme.colorScheme.surfaceContainerHighest,
+      onTap: onTap,
+      child: Center(
+        child: AppIcon(icon, size: 22, color: theme.colorScheme.onSurface),
+      ),
+    );
+  }
+
+  Widget _submitKey(
+    BuildContext context,
+    VoidCallback onTap, {
+    required double height,
+  }) {
+    final theme = Theme.of(context);
+    return _KeyBase(
+      height: height,
+      color: theme.colorScheme.primaryContainer,
+      onTap: onTap,
+      child: Center(
+        child: AppIcon(
+          Icons.check_rounded,
+          size: 32,
+          color: theme.colorScheme.onPrimaryContainer,
+        ),
+      ),
+    );
+  }
+}
+
+class _KeyBase extends StatefulWidget {
+  const _KeyBase({
+    required this.child,
+    required this.height,
+    required this.color,
+    required this.onTap,
+  });
+
+  final Widget child;
+  final double height;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  State<_KeyBase> createState() => _KeyBaseState();
+}
+
+class _KeyBaseState extends State<_KeyBase> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: AnimatedScale(
+        scale: _pressed ? 0.94 : 1.0,
+        duration: const Duration(milliseconds: 80),
+        child: Material(
+          color: widget.color,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: () {
+              HapticFeedback.lightImpact();
+              widget.onTap();
+            },
+            child: SizedBox(
+              height: widget.height,
+              child: widget.child,
+            ),
+          ),
+        ),
       ),
     );
   }

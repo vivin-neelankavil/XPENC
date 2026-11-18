@@ -56,15 +56,14 @@ void main() {
     expect(labelForTxType(TxType.expense), 'Money out');
   });
 
-  testWidgets('Add transaction: Money out / Money in / Transfer fit', (
+  testWidgets('Add transaction: Incomes / Expenses / Accounts fit', (
     tester,
   ) async {
     await pump(tester, const AddTransactionScreen());
     expect(tester.takeException(), isNull);
-    expect(find.text('Money out'), findsWidgets);
-    expect(find.text('Money in'), findsWidgets);
-    expect(find.text('Income'), findsNothing);
-    expect(find.text('Expense'), findsNothing);
+    expect(find.text('Incomes'), findsWidgets);
+    expect(find.text('Expenses'), findsWidgets);
+    expect(find.text('Accounts'), findsWidgets);
     await unmount(tester);
   });
 
