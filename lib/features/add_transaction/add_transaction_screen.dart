@@ -1901,6 +1901,20 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                     showPrefix: false,
                   ),
                 ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const AppIcon(Icons.close_rounded, size: 20),
+                  tooltip: tr('Remove foreign currency'),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  onPressed: () => setState(() {
+                    _hasForeignCurrency = false;
+                    _foreignAmountCtrl.text = '';
+                    if (identical(_activeAmountCtrl, _foreignAmountCtrl)) {
+                      _activeAmountCtrl = _mainAmountCtrl;
+                    }
+                  }),
+                ),
               ],
             ),
             if (rateLine != null) ...[
@@ -2997,12 +3011,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       activeCards.add(const SizedBox(height: 12));
     }
     if (_hasForeignCurrency) {
-      activeCards.add(_foreignToggleTile());
-      activeCards.add(const SizedBox(height: 12));
       activeCards.add(_foreignCurrencyEditorCard());
-      activeCards.add(const SizedBox(height: 12));
-    } else if (_currencyForAccount(_accountId, accountMap) == null) {
-      activeCards.add(_foreignToggleTile());
       activeCards.add(const SizedBox(height: 12));
     }
     if (_isEditing) {
@@ -3121,18 +3130,18 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ),
             ),
           _selectedTagsChips(),
+          const Spacer(),
           if (activeCards.isNotEmpty)
-            Expanded(
+            Flexible(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: activeCards,
                 ),
               ),
-            )
-          else
-            const Spacer(),
+            ),
           // Action toolbar: 📎 💬 🏷️
           _actionToolbar(theme),
           // Calculator Keypad

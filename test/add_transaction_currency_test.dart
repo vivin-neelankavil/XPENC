@@ -101,7 +101,14 @@ void main() {
       await pump(tester, initialType: TxType.expense);
 
       await pickAccount(tester, 'Home wallet');
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Foreign currency'));
+      await tester.pumpAndSettle();
       expect(find.text('Foreign currency'), findsOneWidget);
+
+      Navigator.of(tester.element(find.byType(AddTransactionScreen))).pop();
+      await tester.pumpAndSettle();
 
       await tester.tap(find.text('Home wallet'));
       await tester.pump();
@@ -110,7 +117,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
       expect(find.text('Foreign currency'), findsNothing);
+
+      Navigator.of(tester.element(find.byType(AddTransactionScreen))).pop();
+      await tester.pumpAndSettle();
 
       await unmount(tester);
     },
@@ -128,10 +140,14 @@ void main() {
       await pump(tester, initialType: TxType.expense);
       await pickAccount(tester, 'Home wallet');
 
+      await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Foreign currency'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Foreign currency'));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.byType(AddTransactionScreen))).pop();
+      await tester.pumpAndSettle();
 
       // The editor's currency chip starts on the parent currency.
       await tester.ensureVisible(find.text('INR').last);
