@@ -28,6 +28,7 @@ import '../../data/providers.dart';
 import '../../data/tables.dart';
 import '../modes/mode_detail_screen.dart' show modeSpentLabel;
 import '../modes/mode_widgets.dart';
+import '../data_export/cloud_sync_models.dart';
 import 'transaction_filters.dart';
 import '../../core/widgets/nav_bar_inset.dart';
 import '../persons/person_avatar.dart';
@@ -393,9 +394,45 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
 
     return Scaffold(
-      body: CustomScrollView(
-        controller: _scrollController,
-        slivers: [
+      body: RefreshIndicator(
+        edgeOffset: widget.embedded ? MediaQuery.paddingOf(context).top : 0,
+        onRefresh: () async {
+          final syncService = ref.read(cloudSyncServiceProvider);
+          final messenger = ScaffoldMessenger.of(context);
+          if (syncService.provider == CloudSyncProvider.none) {
+            messenger
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                SnackBar(
+                  content: Text(
+                    tr('Cloud sync is disabled. Enable it in Settings → Data.'),
+                  ),
+                  duration: const Duration(seconds: 3),
+                  action: SnackBarAction(
+                    label: tr('Settings'),
+                    onPressed: () => context.push('/more/settings/data'),
+                  ),
+                ),
+              );
+            return;
+          }
+
+          final result = await syncService.syncNow();
+          if (!mounted) return;
+          final msg = result.message ?? tr('Sync completed');
+          messenger
+            ..hideCurrentSnackBar()
+            ..showSnackBar(
+              SnackBar(
+                content: Text(msg),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+        },
+        child: CustomScrollView(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
           if (widget.embedded) const TopBarInsetSliver(),
           if (!widget.embedded)
             SliverAppBar(
@@ -480,7 +517,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const NavBarInsetSliver(),
         ],
       ),
-    );
+    ),
+  );
   }
 
   // ── Data shaping ────────────────────────────────────────────────────────────
