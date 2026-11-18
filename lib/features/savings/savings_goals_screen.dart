@@ -1066,11 +1066,14 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
     });
   }
 
-  /// The loan's declared principal for the projection preview — the
-  /// existing amount when editing (it can't change), otherwise whatever's
-  /// currently typed into the amount-borrowed field.
-  Money? get _previewPrincipal =>
-      widget.existing?.principal ?? Money.tryParse(_principalController.text);
+  /// The loan's declared principal for the projection preview — whatever's
+  /// currently typed into the amount-borrowed field, falling back to the
+  /// existing amount when editing if the field is blank.
+  Money? get _previewPrincipal {
+    final typed = Money.tryParse(_principalController.text);
+    if (typed != null && typed.isPositive) return typed;
+    return widget.existing?.principal;
+  }
 
   /// Live "total payable / total interest" preview once a rate and tenure
   /// are both entered — `null` otherwise, including while the principal
@@ -1162,7 +1165,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
       return;
     }
     final principal = Money.tryParse(_principalController.text);
-    if (!_isEdit && (principal == null || !principal.isPositive)) {
+    if (principal == null || !principal.isPositive) {
       _showError(tr('Enter the amount borrowed (greater than zero).'));
       return;
     }
@@ -1201,6 +1204,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
         await db.updateLoan(
           accountId: widget.existing!.account.id,
           name: name,
+          principal: principal,
           colorValue: _colorValue,
           iconKey: _iconKey,
           categoryId: _categoryId,
@@ -1301,16 +1305,14 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
               ),
             ),
             const SizedBox(height: 16),
-            if (!_isEdit) ...[
-              AmountKeypadField(
-                controller: _principalController,
-                group: _amountGroup,
-                yieldTo: [_nameFocus, _rateFocus, _tenureFocus],
-                label: tr('Amount borrowed'),
-                hintText: '0.00',
-              ),
-              const SizedBox(height: 16),
-            ],
+            AmountKeypadField(
+              controller: _principalController,
+              group: _amountGroup,
+              yieldTo: [_nameFocus, _rateFocus, _tenureFocus],
+              label: tr('Amount borrowed'),
+              hintText: '0.00',
+            ),
+            const SizedBox(height: 16),
             AmountKeypadField(
               controller: _emiController,
               group: _amountGroup,

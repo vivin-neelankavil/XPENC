@@ -383,4 +383,89 @@ void main() {
 
     await unmount(tester);
   });
+
+  testWidgets('editing an existing loan allows editing the borrowed amount', (
+    tester,
+  ) async {
+    final loanId = await db.addLoan(
+      name: 'Car Loan',
+      principal: Money.fromRupees(50000),
+      colorValue: 0xFF2563EB,
+      iconKey: 'loan',
+    );
+
+    await pump(tester, LoanDetailScreen(accountId: loanId));
+    expect(
+      find.text(MoneyFormat.symbol(Money.fromRupees(50000))),
+      findsWidgets,
+    );
+
+    // Tap edit icon on LoanDetailScreen
+    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    // 'Amount borrowed' should be visible when editing
+    expect(
+      find.widgetWithText(AmountKeypadField, 'Amount borrowed'),
+      findsOneWidget,
+    );
+
+    // Edit the loan via db.updateLoan with new principal and verify
+    await tester.runAsync(() async {
+      await db.updateLoan(
+        accountId: loanId,
+        name: 'Car Loan',
+        principal: Money.fromRupees(75000),
+        colorValue: 0xFF2563EB,
+        iconKey: 'loan',
+      );
+    });
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(
+      find.text(MoneyFormat.symbol(Money.fromRupees(75000))),
+      findsWidgets,
+    );
+
+    await unmount(tester);
+  });
+
+  test('updateLoan with new principal updates opening and current balance', () async {
+    final cash = (await db.watchAccounts().first)
+        .firstWhere((a) => a.type == AccountType.cash)
+        .id;
+    final loanId = await db.addLoan(
+      name: 'Bike Loan',
+      principal: Money.fromRupees(100000),
+      colorValue: 0xFF2563EB,
+      iconKey: 'loan',
+    );
+
+    // Repay 20,000
+    await db.addLoanPayment(
+      sourceAccountId: cash,
+      loanAccountId: loanId,
+      amount: Money.fromRupees(20000),
+      date: DateTime.now(),
+    );
+
+    var account = await (db.select(db.accounts)..where((a) => a.id.equals(loanId))).getSingle();
+    expect(account.openingBalance, Money.fromRupees(-100000));
+    expect(account.currentBalance, Money.fromRupees(-80000));
+
+    // Update borrowed amount to 150,000
+    await db.updateLoan(
+      accountId: loanId,
+      name: 'Bike Loan',
+      principal: Money.fromRupees(150000),
+      colorValue: 0xFF2563EB,
+      iconKey: 'loan',
+    );
+
+    account = await (db.select(db.accounts)..where((a) => a.id.equals(loanId))).getSingle();
+    expect(account.openingBalance, Money.fromRupees(-150000));
+    expect(account.currentBalance, Money.fromRupees(-130000));
+  });
 }

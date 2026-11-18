@@ -2750,24 +2750,38 @@ class AppDatabase extends _$AppDatabase {
     required String name,
     required int colorValue,
     required String iconKey,
+    Money? principal,
     int? categoryId,
     Money? emiAmount,
     double? interestRatePct,
     int? tenureMonths,
     DateTime? startDate,
   }) {
+    if (principal != null && !principal.isPositive) {
+      throw ArgumentError(tr('Enter the amount borrowed (greater than zero).'));
+    }
     return transaction(() async {
+      final loan = await (select(
+        accounts,
+      )..where((a) => a.id.equals(accountId))).getSingle();
+      final effectivePrincipal =
+          principal ?? Money.fromPaise(-loan.openingBalance.paise);
+      final principalChanged =
+          principal != null && principal.paise != -loan.openingBalance.paise;
+
       await (update(accounts)..where((a) => a.id.equals(accountId))).write(
         AccountsCompanion(
           name: Value(name),
           colorValue: Value(colorValue),
           iconKey: Value(iconKey),
+          openingBalance: principalChanged
+              ? Value(Money.fromPaise(-effectivePrincipal.paise))
+              : const Value.absent(),
         ),
       );
-      final loan = await (select(
-        accounts,
-      )..where((a) => a.id.equals(accountId))).getSingle();
-      final principal = Money.fromPaise(-loan.openingBalance.paise);
+      if (principalChanged) {
+        await recalculateBalances();
+      }
       await (update(
         loanDetails,
       )..where((l) => l.accountId.equals(accountId))).write(
@@ -2775,7 +2789,7 @@ class AppDatabase extends _$AppDatabase {
           categoryId: Value(categoryId),
           emiAmount: Value(
             _resolvedEmi(
-              principal: principal,
+              principal: effectivePrincipal,
               emiAmount: emiAmount,
               interestRatePct: interestRatePct,
               tenureMonths: tenureMonths,
