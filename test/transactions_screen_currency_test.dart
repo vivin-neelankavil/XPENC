@@ -96,4 +96,18 @@ void main() {
       await unmount(tester);
     },
   );
+
+  testWidgets('pull to refresh on TransactionsScreen triggers cloud sync', (
+    tester,
+  ) async {
+    await pump(tester);
+    expect(find.byType(RefreshIndicator), findsOneWidget);
+
+    await tester.fling(find.byType(CustomScrollView), const Offset(0, 300), 1000);
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.byType(SnackBar), findsOneWidget);
+    await unmount(tester);
+  });
 }
