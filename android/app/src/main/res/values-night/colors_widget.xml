@@ -6,4 +6,20 @@
     <color name="widget_text_secondary">#9CA3AF</color>
     <color name="widget_chip_background">#242427</color>
     <color name="widget_chip_text">#FFFFFF</color>
+    <color name="widget_card_income_bg">#14241B</color>
+    <color name="widget_card_income_stroke">#1C3D2B</color>
+    <color name="widget_card_expense_bg">#28171A</color>
+    <color name="widget_card_expense_stroke">#441F24</color>
+    <color name="widget_banner_bg">#1A1A1E</color>
+    <color name="widget_progress_bg">#2D2D35</color>
+    <color name="widget_progress_fill">#22C55E</color>
+    <color name="widget_progress_loan_fill">#3B82F6</color>
+    <color name="widget_badge_bg">#2A2A30</color>
+    <color name="widget_badge_text">#9CA3AF</color>
+    <color name="widget_card_min_bg">#181E36</color>
+    <color name="widget_card_min_stroke">#26335C</color>
+    <color name="widget_bar_min_highlight">#60A5FA</color>
+    <color name="widget_bar_min_muted">#283354</color>
+    <color name="widget_bar_max_highlight">#F87171</color>
+    <color name="widget_bar_max_muted">#3B1F24</color>
 </resources>

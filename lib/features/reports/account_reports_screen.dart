@@ -94,7 +94,7 @@ class _HeroCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final netWorth = ref.watch(netWorthProvider);
+    final totalMoney = ref.watch(totalMoneyProvider);
     final trend = ref.watch(netWorthTrendProvider(2));
     final change = trend.length < 2
         ? null
@@ -115,7 +115,7 @@ class _HeroCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 6),
-            netWorth.when(
+            totalMoney.when(
               data: (money) => FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,

@@ -477,7 +477,7 @@ class _WelcomeStep extends StatelessWidget {
           _FeatureRow(
             icon: Icons.code_rounded,
             color: AppColors.transfer,
-            text: tr('Built and maintained by Yash Patil (PATILYASHH).'),
+            text: tr('Built by Yash Patil · Designed & maintained by Vivin Neelankavil.'),
           ),
         ],
       ),

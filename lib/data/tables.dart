@@ -309,6 +309,16 @@ class Accounts extends Table {
   BoolColumn get includeInNetWorth =>
       boolean().withDefault(const Constant(true))();
 
+  /// Whether this account's balance is included in everyday Total money.
+  /// When turned off, it is excluded from Total money but continues to be
+  /// included in Net Worth. On by default.
+  BoolColumn get includeInTotalMoney =>
+      boolean().withDefault(const Constant(true))();
+
+  /// Optional freeform notes for this account (e.g. locker code, account memo,
+  /// branch information).
+  TextColumn get note => text().nullable()();
+
   /// Null = this account is in the parent currency (`Settings.currencyCode`)
   /// — true for every account that existed before this feature, and for
   /// every account a user never explicitly changes. Locked once the account

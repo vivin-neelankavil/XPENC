@@ -514,7 +514,7 @@ final appRouter = GoRouter(
                 GoRoute(
                   path: 'goals',
                   parentNavigatorKey: _rootKey,
-                  builder: (_, _) => const SavingsGoalsScreen(),
+                  builder: (_, _) => const AccountsScreen(),
                   routes: [
                     GoRoute(
                       path: 'goal/:id',
@@ -617,6 +617,14 @@ final appRouter = GoRouter(
             ),
           ],
         ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/categories',
+              builder: (_, _) => const CategoriesScreen(embedded: true),
+            ),
+          ],
+        ),
       ],
     ),
 
@@ -636,7 +644,7 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/add',
       parentNavigatorKey: _rootKey,
-      builder: (_, state) {
+      pageBuilder: (context, state) {
         final id = state.uri.queryParameters['id'];
         final duplicateId = state.uri.queryParameters['duplicate'];
         final templateId = state.uri.queryParameters['template'];
@@ -656,29 +664,51 @@ final appRouter = GoRouter(
         final amount = amountText == null
             ? null
             : Money.fromRupees(double.tryParse(amountText) ?? 0);
-        return AddTransactionScreen(
-          transactionId: id == null ? null : int.tryParse(id),
-          duplicateFromId: duplicateId == null
-              ? null
-              : int.tryParse(duplicateId),
-          templateId: templateId == null ? null : int.tryParse(templateId),
-          initialType: type,
-          initialPayee: payee,
-          initialNote: note,
-          initialAmount: amount,
-          // An account page's Transfer out / Transfer in (GitHub #171).
-          initialAccountId: int.tryParse(
-            state.uri.queryParameters['from'] ?? '',
-          ),
-          initialToAccountId: int.tryParse(
-            state.uri.queryParameters['to'] ?? '',
-          ),
-          plannedCostId: int.tryParse(
-            state.uri.queryParameters['plannedCost'] ?? '',
-          ),
-          // The calendar's ➕ for a picked day, as yyyy-MM-dd.
-          initialDate: DateTime.tryParse(
-            state.uri.queryParameters['date'] ?? '',
+        return CustomTransitionPage<void>(
+          key: state.pageKey,
+          opaque: false,
+          barrierDismissible: true,
+          barrierColor: Colors.black54,
+          transitionDuration: const Duration(milliseconds: 250),
+          reverseTransitionDuration: const Duration(milliseconds: 200),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            final curved = CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+              reverseCurve: Curves.easeInCubic,
+            );
+            return SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 1),
+                end: Offset.zero,
+              ).animate(curved),
+              child: child,
+            );
+          },
+          child: AddTransactionScreen(
+            transactionId: id == null ? null : int.tryParse(id),
+            duplicateFromId: duplicateId == null
+                ? null
+                : int.tryParse(duplicateId),
+            templateId: templateId == null ? null : int.tryParse(templateId),
+            initialType: type,
+            initialPayee: payee,
+            initialNote: note,
+            initialAmount: amount,
+            // An account page's Transfer out / Transfer in (GitHub #171).
+            initialAccountId: int.tryParse(
+              state.uri.queryParameters['from'] ?? '',
+            ),
+            initialToAccountId: int.tryParse(
+              state.uri.queryParameters['to'] ?? '',
+            ),
+            plannedCostId: int.tryParse(
+              state.uri.queryParameters['plannedCost'] ?? '',
+            ),
+            // The calendar's ➕ for a picked day, as yyyy-MM-dd.
+            initialDate: DateTime.tryParse(
+              state.uri.queryParameters['date'] ?? '',
+            ),
           ),
         );
       },

@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -47,10 +48,13 @@ class EditAccountSheet extends ConsumerStatefulWidget {
 
 class _EditAccountSheetState extends ConsumerState<EditAccountSheet> {
   late final _nameController = TextEditingController(text: widget.account.name);
+  late final _noteController =
+      TextEditingController(text: widget.account.note ?? '');
   late int _colorValue = widget.account.colorValue;
   late String _iconKey = widget.account.iconKey;
   late bool _showTransferIn = widget.account.showTransferIn;
   late bool _showTransferOut = widget.account.showTransferOut;
+  late bool _includeInTotalMoney = widget.account.includeInTotalMoney;
   bool _submitting = false;
 
   /// The page only offers Transfer in / out where [hasTransferShortcuts]
@@ -60,6 +64,7 @@ class _EditAccountSheetState extends ConsumerState<EditAccountSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -78,10 +83,14 @@ class _EditAccountSheetState extends ConsumerState<EditAccountSheet> {
     final account = widget.account;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
+    final noteRaw = _noteController.text.trim();
+    final note = noteRaw.isEmpty ? null : noteRaw;
     final detailsChanged =
         name != account.name ||
         _iconKey != account.iconKey ||
-        _colorValue != account.colorValue;
+        _colorValue != account.colorValue ||
+        note != account.note ||
+        _includeInTotalMoney != account.includeInTotalMoney;
     final shortcutsChanged =
         _showTransferIn != account.showTransferIn ||
         _showTransferOut != account.showTransferOut;
@@ -99,6 +108,8 @@ class _EditAccountSheetState extends ConsumerState<EditAccountSheet> {
           name: name,
           iconKey: _iconKey,
           colorValue: _colorValue,
+          includeInTotalMoney: Value(_includeInTotalMoney),
+          note: Value(note),
         );
       }
       if (shortcutsChanged) {
@@ -171,6 +182,36 @@ class _EditAccountSheetState extends ConsumerState<EditAccountSheet> {
               onChanged: (k) => setState(() => _iconKey = k),
             ),
             const SizedBox(height: 28),
+
+            if (widget.account.linkedAccountId == null) ...[
+              _fieldLabel(theme, tr('Total money & Net worth')),
+              const SizedBox(height: 4),
+              AppSwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _includeInTotalMoney,
+                onChanged: (v) => setState(() => _includeInTotalMoney = v),
+                title: const Tr('Include in Total money'),
+                subtitle: const Tr(
+                  'Turn off to exclude this account from Total money. '
+                  'It will still be included in your Net Worth.',
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            _fieldLabel(theme, tr('Note')),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _noteController,
+              minLines: 2,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: tr('Add notes (e.g. locker code, account memo)...'),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 24),
 
             if (_hasShortcuts) ...[
               _fieldLabel(theme, tr('Shortcuts on its page')),

@@ -263,6 +263,20 @@ class LoanDetailScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          AppCard(
+            child: AppSwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: const Tr('Show in total money'),
+              subtitle: const Tr(
+                'Include this loan in Total money. It will always remain in Net worth.',
+              ),
+              value: account.includeInTotalMoney,
+              onChanged: (v) => ref
+                  .read(dbProvider)
+                  .setAccountIncludeInTotalMoney(account.id, v),
+            ),
+          ),
           if (!isPaidOff) ...[
             const SizedBox(height: 12),
             LinkedAutoRulesCard(

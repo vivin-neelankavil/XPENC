@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spending Extremes (Min & Max Spent) home-screen widget.
+     Side-by-side Minimum spent and Maximum spent cards with amount, label, date,
+     category tag, and distribution indicators. Tapping a card opens that transaction. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_background"
+    android:padding="12dp">
+
+    <!-- Minimum Spent Card -->
+    <RelativeLayout
+        android:id="@+id/widget_min_card"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginEnd="5dp"
+        android:background="@drawable/widget_card_min"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_min_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_primary"
+                tools:text="$10" />
+
+            <TextView
+                android:id="@+id/widget_min_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/widget_extremes_min_label"
+                android:textSize="12sp"
+                android:textColor="@color/widget_text_secondary" />
+
+            <TextView
+                android:id="@+id/widget_min_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="30 Jul 2026 15:46" />
+
+            <TextView
+                android:id="@+id/widget_min_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_primary"
+                tools:text="# Coffee" />
+        </LinearLayout>
+
+        <!-- Bottom right decorative 3-bar indicator with lowest bar highlighted -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="15dp"
+                android:layout_marginEnd="3dp"
+                android:src="@drawable/widget_pill_min_muted"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="22dp"
+                android:layout_marginEnd="3dp"
+                android:src="@drawable/widget_pill_min_muted"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="8dp"
+                android:src="@drawable/widget_pill_min_highlight"
+                android:contentDescription="@null" />
+        </LinearLayout>
+    </RelativeLayout>
+
+    <!-- Maximum Spent Card -->
+    <RelativeLayout
+        android:id="@+id/widget_max_card"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:layout_marginStart="5dp"
+        android:background="@drawable/widget_card_expense"
+        android:padding="12dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_max_amount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_primary"
+                tools:text="$50" />
+
+            <TextView
+                android:id="@+id/widget_max_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/widget_extremes_max_label"
+                android:textSize="12sp"
+                android:textColor="@color/widget_text_secondary" />
+
+            <TextView
+                android:id="@+id/widget_max_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="11sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="30 Jul 2026 15:46" />
+
+            <TextView
+                android:id="@+id/widget_max_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:textColor="@color/widget_text_primary"
+                tools:text="# Food" />
+        </LinearLayout>
+
+        <!-- Bottom right decorative 3-bar indicator with highest bar highlighted -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentEnd="true"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="15dp"
+                android:layout_marginEnd="3dp"
+                android:src="@drawable/widget_pill_max_muted"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="25dp"
+                android:layout_marginEnd="3dp"
+                android:src="@drawable/widget_pill_max_highlight"
+                android:contentDescription="@null" />
+
+            <ImageView
+                android:layout_width="9dp"
+                android:layout_height="8dp"
+                android:src="@drawable/widget_pill_max_muted"
+                android:contentDescription="@null" />
+        </LinearLayout>
+    </RelativeLayout>
+</LinearLayout>

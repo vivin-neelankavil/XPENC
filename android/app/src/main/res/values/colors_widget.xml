@@ -13,4 +13,20 @@
          not theme-dependent, so identical in the night variant too. -->
     <color name="widget_income">#16A34A</color>
     <color name="widget_expense">#DC2626</color>
+    <color name="widget_card_income_bg">#F0FDF4</color>
+    <color name="widget_card_income_stroke">#BBF7D0</color>
+    <color name="widget_card_expense_bg">#FEF2F2</color>
+    <color name="widget_card_expense_stroke">#FECACA</color>
+    <color name="widget_banner_bg">#F3F4F6</color>
+    <color name="widget_progress_bg">#E5E7EB</color>
+    <color name="widget_progress_fill">#16A34A</color>
+    <color name="widget_progress_loan_fill">#2563EB</color>
+    <color name="widget_badge_bg">#E5E7EB</color>
+    <color name="widget_badge_text">#4B5563</color>
+    <color name="widget_card_min_bg">#EEF2FF</color>
+    <color name="widget_card_min_stroke">#C7D2FE</color>
+    <color name="widget_bar_min_highlight">#3B82F6</color>
+    <color name="widget_bar_min_muted">#E0E7FF</color>
+    <color name="widget_bar_max_highlight">#EF4444</color>
+    <color name="widget_bar_max_muted">#FEE2E2</color>
 </resources>

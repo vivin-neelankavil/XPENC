@@ -154,6 +154,10 @@ void main() {
   testWidgets('Onboarding renders', (tester) async {
     await pump(tester, const OnboardingScreen());
     expect(tester.takeException(), isNull);
+    expect(
+      find.text('Built by Yash Patil · Designed & maintained by Vivin Neelankavil.'),
+      findsOneWidget,
+    );
     await unmount(tester);
   });
 
@@ -1260,6 +1264,9 @@ void main() {
     expect(find.text('Balance'), findsOneWidget);
     expect(find.text('Budgets'), findsOneWidget);
     expect(find.text('Quick Add'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Goals & Loans'), 200);
+    expect(find.text('This Month'), findsOneWidget);
+    expect(find.text('Goals & Loans'), findsOneWidget);
     await unmount(tester);
   });
 

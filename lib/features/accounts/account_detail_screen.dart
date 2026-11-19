@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -131,6 +132,13 @@ class _AccountDetailView extends ConsumerWidget {
               currency: _accountCurrency(account, accountMap),
             ),
           ),
+          if (account.note != null && account.note!.trim().isNotEmpty)
+            SliverToBoxAdapter(
+              child: _AccountNoteCard(
+                note: account.note!.trim(),
+                onTapEdit: () => showEditAccountSheet(context, account),
+              ),
+            ),
           // Move money between your own accounts in one tap (GitHub #171) —
           // cash at home into the wallet, a bank to cash, a card's bill.
           // Either button can be turned off in Edit account (GitHub #199).
@@ -355,6 +363,9 @@ class _HeaderCard extends ConsumerWidget {
               : MoneyFormat.symbolIn(minimumBalance, currency!));
     if (minimumBalanceText != null) {
       chips.add(_InfoChip(label: tr('Min {0}', [minimumBalanceText])));
+    }
+    if (!_isDebitCard && !account.includeInTotalMoney) {
+      chips.add(_InfoChip(label: tr('Excluded from Total money')));
     }
     // A debit card shows its linked bank's own balance above — that
     // account's own detail page is where its minimum-balance floor (if any)
@@ -679,5 +690,83 @@ Future<void> _downloadStatement(
       ..showSnackBar(
         SnackBar(content: Text(tr("Couldn't generate statement: {0}", [e]))),
       );
+  }
+}
+
+// ── Account note card ───────────────────────────────────────────────────────
+
+class _AccountNoteCard extends StatelessWidget {
+  const _AccountNoteCard({required this.note, required this.onTapEdit});
+
+  final String note;
+  final VoidCallback onTapEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+      child: AppCard(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  AppIcon(
+                    Icons.sticky_note_2_outlined,
+                    size: 18,
+                    color: cs.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    tr('Note'),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: cs.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const AppIcon(Icons.copy_outlined, size: 16),
+                    tooltip: tr('Copy note'),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: note));
+                      ScaffoldMessenger.of(context)
+                        ..hideCurrentSnackBar()
+                        ..showSnackBar(
+                          SnackBar(
+                            content: Tr('Note copied to clipboard'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                    },
+                  ),
+                  IconButton(
+                    icon: const AppIcon(Icons.edit_outlined, size: 16),
+                    tooltip: tr('Edit note'),
+                    visualDensity: VisualDensity.compact,
+                    onPressed: onTapEdit,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SelectableText(
+                note,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: cs.onSurface,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

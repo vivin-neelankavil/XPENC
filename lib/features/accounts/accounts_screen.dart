@@ -18,6 +18,7 @@ import '../../data/database.dart';
 import '../../data/mode_providers.dart';
 import '../../data/providers.dart';
 import '../../data/tables.dart';
+import '../savings/savings_goals_screen.dart';
 import 'add_account_sheet.dart';
 import 'edit_account_sheet.dart';
 import '../../core/widgets/nav_bar_inset.dart';
@@ -69,9 +70,9 @@ class AccountsScreen extends ConsumerWidget {
                       onPressed: () => context.push('/more/accounts/archived'),
                     ),
                     IconButton(
-                      tooltip: tr('Add account'),
+                      tooltip: tr('Add'),
                       icon: const AppIcon(Icons.add_rounded),
-                      onPressed: () => showAddAccountSheet(context),
+                      onPressed: () => _showAddMenu(context),
                     ),
                   ],
                 ),
@@ -96,11 +97,6 @@ class AccountsScreen extends ConsumerWidget {
                 Icons.account_balance_outlined,
                 tr('Account reports'),
                 '/more/account-reports',
-              ),
-              ModuleShortcut(
-                Icons.savings_outlined,
-                tr('Goals & Loans'),
-                '/more/goals',
               ),
               ModuleShortcut(
                 Icons.tune_rounded,
@@ -171,6 +167,49 @@ class AccountsScreen extends ConsumerWidget {
     }
   }
 
+  void _showAddMenu(BuildContext context) {
+    showAppSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppListTile(
+              leading: const AppIcon(Icons.account_balance_rounded),
+              title: const Tr('Add account'),
+              subtitle: const Tr('Cash, bank account, credit card, or pay later'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showAddAccountSheet(context);
+              },
+            ),
+            AppListTile(
+              leading: const AppIcon(Icons.savings_rounded),
+              title: const Tr('New savings goal'),
+              subtitle: const Tr('Save toward a target amount or deadline'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                openGoalEditor(context);
+              },
+            ),
+            AppListTile(
+              leading: const AppIcon(Icons.request_quote_rounded),
+              title: const Tr('New loan'),
+              subtitle: const Tr('Track borrowed money, interest, and EMI repayments'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                openLoanEditor(context);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   List<Widget> _sections(
     BuildContext context,
     WidgetRef ref,
@@ -183,6 +222,8 @@ class AccountsScreen extends ConsumerWidget {
     final payLater = accounts
         .where((a) => a.type == AccountType.payLater)
         .toList();
+    final goals = accounts.where((a) => a.type == AccountType.goal).toList();
+    final loans = accounts.where((a) => a.type == AccountType.loan).toList();
     final prepaidBalance = accounts
         .where((a) => a.type == AccountType.prepaidBalance)
         .toList();
@@ -199,6 +240,8 @@ class AccountsScreen extends ConsumerWidget {
     addGroup(tr('Bank'), banks);
     addGroup(tr('Cards'), cards);
     addGroup(tr('Pay later'), payLater);
+    addGroup(tr('Goals'), goals);
+    addGroup(tr('Loans'), loans);
     addGroup(tr('Prepaid Balance'), prepaidBalance);
     return out;
   }
@@ -259,9 +302,28 @@ class _TotalMoneyCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final netWorth =
-        ref.watch(netWorthProvider).valueOrNull ?? const Money.zero();
+    final totalMoney =
+        ref.watch(totalMoneyProvider).valueOrNull ?? const Money.zero();
+    final netWorth = ref.watch(netWorthProvider).valueOrNull;
     final available = ref.watch(availableBalanceProvider).valueOrNull;
+    final accounts = ref.watch(balanceAccountsProvider).valueOrNull ?? const [];
+    final excludedAccounts =
+        accounts.where((a) => !a.includeInTotalMoney).toList();
+
+    final String subtitleText;
+    if (excludedAccounts.isEmpty) {
+      subtitleText = tr('Every account, goals and loans included');
+    } else if (excludedAccounts.length <= 2) {
+      subtitleText = tr(
+        'Excludes {0}',
+        [excludedAccounts.map((a) => a.name).join(', ')],
+      );
+    } else {
+      subtitleText = tr(
+        'Excludes {0} accounts',
+        [excludedAccounts.length],
+      );
+    }
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
@@ -286,19 +348,40 @@ class _TotalMoneyCard extends ConsumerWidget {
               ),
               const SizedBox(height: 6),
               BalanceText(
-                netWorth,
+                totalMoney,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 4),
-              Tr(
-                'Every account, goals and loans included',
+              Text(
+                subtitleText,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              if (available != null && available != netWorth) ...[
+              if (netWorth != null && netWorth != totalMoney) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Tr(
+                        'Net worth (all accounts)',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    BalanceText(
+                      netWorth,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (available != null && available != totalMoney) ...[
                 const SizedBox(height: 12),
                 InkWell(
                   key: const Key('accounts-available-balance'),
@@ -435,6 +518,8 @@ class _AccountTile extends ConsumerWidget {
   bool get _isCreditCard =>
       account.type == AccountType.card && account.cardKind == CardKind.credit;
   bool get _isPayLater => account.type == AccountType.payLater;
+  bool get _isGoal => account.type == AccountType.goal;
+  bool get _isLoan => account.type == AccountType.loan;
   bool get _owesLikeCredit => _isCreditCard || _isPayLater;
 
   /// Null = parent currency, matching every existing account before this
@@ -454,10 +539,12 @@ class _AccountTile extends ConsumerWidget {
       subtitle = _subtitle(theme, tr('Draws from {0}', [bank?.name ?? 'bank']));
       trailing = _LinkedChip();
     } else if (_owesLikeCredit) {
-      subtitle = _subtitle(
-        theme,
-        account.currentBalance.isNegative ? tr('Outstanding') : tr('Paid off'),
-      );
+      final status =
+          account.currentBalance.isNegative ? tr('Outstanding') : tr('Paid off');
+      final text = account.includeInTotalMoney
+          ? status
+          : '$status   ${tr('Excluded from Total money')}';
+      subtitle = _subtitle(theme, text);
       trailing = BalanceText(
         account.currentBalance,
         currency: _currency,
@@ -465,8 +552,55 @@ class _AccountTile extends ConsumerWidget {
           fontWeight: FontWeight.w600,
         ),
       );
+    } else if (_isGoal) {
+      final goal = ref.watch(goalProgressProvider(account.id));
+      final parts = <String>[];
+      if (!account.includeInTotalMoney) {
+        parts.add(tr('Excluded from Total money'));
+      }
+      if (goal != null) {
+        final pct = (goal.fraction * 100).round();
+        parts.add(
+          tr('{0}% of {1}', [pct, MoneyFormat.compact(goal.detail.targetAmount)]),
+        );
+      }
+      subtitle = parts.isEmpty ? null : _subtitle(theme, parts.join('   '));
+      trailing = BalanceText(
+        account.currentBalance,
+        currency: _currency,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    } else if (_isLoan) {
+      final loan = ref.watch(loanProgressProvider(account.id));
+      final parts = <String>[];
+      if (!account.includeInTotalMoney) {
+        parts.add(tr('Excluded from Total money'));
+      }
+      if (loan?.emi != null) {
+        parts.add(tr('EMI {0}', [MoneyFormat.compact(loan!.emi!)]));
+      } else {
+        parts.add(
+          account.currentBalance.isNegative ? tr('Outstanding') : tr('Paid off'),
+        );
+      }
+      subtitle = parts.isEmpty ? null : _subtitle(theme, parts.join('   '));
+      trailing = BalanceText(
+        account.currentBalance,
+        currency: _currency,
+        style: theme.textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: account.currentBalance.isNegative
+              ? AppColors.expense
+              : theme.colorScheme.onSurface,
+        ),
+      );
     } else {
       final parts = <String>[];
+      if (!account.includeInTotalMoney) {
+        parts.add(tr('Excluded from Total money'));
+      }
       if (account.bankName != null && account.bankName!.isNotEmpty) {
         parts.add(account.bankName!);
       }
@@ -492,8 +626,26 @@ class _AccountTile extends ConsumerWidget {
       ),
       subtitle: subtitle,
       trailing: trailing,
-      onTap: () => pushZoom(context, '/account/${account.id}'),
-      onLongPress: () => _showActions(context, ref),
+      onTap: () {
+        if (_isGoal) {
+          pushZoom(context, '/more/goals/goal/${account.id}');
+        } else if (_isLoan) {
+          pushZoom(context, '/more/goals/loan/${account.id}');
+        } else {
+          pushZoom(context, '/account/${account.id}');
+        }
+      },
+      onLongPress: () {
+        if (_isGoal) {
+          final goal = ref.read(goalProgressProvider(account.id));
+          if (goal != null) openGoalEditor(context, goal);
+        } else if (_isLoan) {
+          final loan = ref.read(loanProgressProvider(account.id));
+          if (loan != null) openLoanEditor(context, loan);
+        } else {
+          _showActions(context, ref);
+        }
+      },
     );
   }
 

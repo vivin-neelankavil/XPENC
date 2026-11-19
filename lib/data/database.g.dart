@@ -234,6 +234,32 @@ class $AccountsTable extends Accounts
     ),
     defaultValue: const Constant(true),
   );
+  static const VerificationMeta _includeInTotalMoneyMeta = const VerificationMeta(
+    'includeInTotalMoney',
+  );
+  @override
+  late final GeneratedColumn<bool> includeInTotalMoney = GeneratedColumn<bool>(
+    'include_in_total_money',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("include_in_total_money" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _noteMeta = const VerificationMeta(
+    'note',
+  );
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _currencyCodeMeta = const VerificationMeta(
     'currencyCode',
   );
@@ -278,6 +304,8 @@ class $AccountsTable extends Accounts
     showTransferIn,
     showTransferOut,
     includeInNetWorth,
+    includeInTotalMoney,
+    note,
     currencyCode,
     minimumBalance,
   ];
@@ -395,6 +423,24 @@ class $AccountsTable extends Accounts
         ),
       );
     }
+    if (data.containsKey('include_in_total_money')) {
+      context.handle(
+        _includeInTotalMoneyMeta,
+        includeInTotalMoney.isAcceptableOrUnknown(
+          data['include_in_total_money']!,
+          _includeInTotalMoneyMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(
+          data['note']!,
+          _noteMeta,
+        ),
+      );
+    }
     if (data.containsKey('currency_code')) {
       context.handle(
         _currencyCodeMeta,
@@ -493,6 +539,14 @@ class $AccountsTable extends Accounts
         DriftSqlType.bool,
         data['${effectivePrefix}include_in_net_worth'],
       )!,
+      includeInTotalMoney: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}include_in_total_money'],
+      )!,
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
       currencyCode: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}currency_code'],
@@ -580,6 +634,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   /// savings goal or account off if they don't want it inflating the figure
   /// they treat as their real spendable net worth.
   final bool includeInNetWorth;
+  final bool includeInTotalMoney;
+  final String? note;
 
   /// Null = this account is in the parent currency (`Settings.currencyCode`)
   /// — true for every account that existed before this feature, and for
@@ -616,6 +672,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     required this.showTransferIn,
     required this.showTransferOut,
     required this.includeInNetWorth,
+    required this.includeInTotalMoney,
+    this.note,
     this.currencyCode,
     this.minimumBalance,
   });
@@ -660,6 +718,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     map['show_transfer_in'] = Variable<bool>(showTransferIn);
     map['show_transfer_out'] = Variable<bool>(showTransferOut);
     map['include_in_net_worth'] = Variable<bool>(includeInNetWorth);
+    map['include_in_total_money'] = Variable<bool>(includeInTotalMoney);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
     if (!nullToAbsent || currencyCode != null) {
       map['currency_code'] = Variable<String>(currencyCode);
     }
@@ -699,6 +761,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       showTransferIn: Value(showTransferIn),
       showTransferOut: Value(showTransferOut),
       includeInNetWorth: Value(includeInNetWorth),
+      includeInTotalMoney: Value(includeInTotalMoney),
+      note: note == null && nullToAbsent
+          ? const Value.absent()
+          : Value(note),
       currencyCode: currencyCode == null && nullToAbsent
           ? const Value.absent()
           : Value(currencyCode),
@@ -736,6 +802,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       showTransferIn: serializer.fromJson<bool>(json['showTransferIn']),
       showTransferOut: serializer.fromJson<bool>(json['showTransferOut']),
       includeInNetWorth: serializer.fromJson<bool>(json['includeInNetWorth']),
+      includeInTotalMoney: serializer.fromJson<bool>(json['includeInTotalMoney']),
+      note: serializer.fromJson<String?>(json['note']),
       currencyCode: serializer.fromJson<String?>(json['currencyCode']),
       minimumBalance: serializer.fromJson<Money?>(json['minimumBalance']),
     );
@@ -766,6 +834,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       'showTransferIn': serializer.toJson<bool>(showTransferIn),
       'showTransferOut': serializer.toJson<bool>(showTransferOut),
       'includeInNetWorth': serializer.toJson<bool>(includeInNetWorth),
+      'includeInTotalMoney': serializer.toJson<bool>(includeInTotalMoney),
+      'note': serializer.toJson<String?>(note),
       'currencyCode': serializer.toJson<String?>(currencyCode),
       'minimumBalance': serializer.toJson<Money?>(minimumBalance),
     };
@@ -790,6 +860,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     bool? showTransferIn,
     bool? showTransferOut,
     bool? includeInNetWorth,
+    bool? includeInTotalMoney,
+    Value<String?> note = const Value.absent(),
     Value<String?> currencyCode = const Value.absent(),
     Value<Money?> minimumBalance = const Value.absent(),
   }) => AccountRow(
@@ -813,6 +885,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     showTransferIn: showTransferIn ?? this.showTransferIn,
     showTransferOut: showTransferOut ?? this.showTransferOut,
     includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+    includeInTotalMoney: includeInTotalMoney ?? this.includeInTotalMoney,
+    note: note.present ? note.value : this.note,
     currencyCode: currencyCode.present ? currencyCode.value : this.currencyCode,
     minimumBalance: minimumBalance.present
         ? minimumBalance.value
@@ -856,6 +930,12 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       includeInNetWorth: data.includeInNetWorth.present
           ? data.includeInNetWorth.value
           : this.includeInNetWorth,
+      includeInTotalMoney: data.includeInTotalMoney.present
+          ? data.includeInTotalMoney.value
+          : this.includeInTotalMoney,
+      note: data.note.present
+          ? data.note.value
+          : this.note,
       currencyCode: data.currencyCode.present
           ? data.currencyCode.value
           : this.currencyCode,
@@ -886,6 +966,10 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
           ..write('showTransferIn: $showTransferIn, ')
           ..write('showTransferOut: $showTransferOut, ')
           ..write('includeInNetWorth: $includeInNetWorth, ')
+          ..write('includeInTotalMoney: $includeInTotalMoney, ')
+          ..write('note: $note, ')
+          ..write('includeInTotalMoney: $includeInTotalMoney, ')
+          ..write('note: $note, ')
           ..write('currencyCode: $currencyCode, ')
           ..write('minimumBalance: $minimumBalance')
           ..write(')'))
@@ -893,7 +977,7 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     name,
     type,
@@ -912,9 +996,11 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     showTransferIn,
     showTransferOut,
     includeInNetWorth,
+    includeInTotalMoney,
+    note,
     currencyCode,
     minimumBalance,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -937,6 +1023,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
           other.showTransferIn == this.showTransferIn &&
           other.showTransferOut == this.showTransferOut &&
           other.includeInNetWorth == this.includeInNetWorth &&
+          other.includeInTotalMoney == this.includeInTotalMoney &&
+          other.note == this.note &&
           other.currencyCode == this.currencyCode &&
           other.minimumBalance == this.minimumBalance);
 }
@@ -960,6 +1048,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
   final Value<bool> showTransferIn;
   final Value<bool> showTransferOut;
   final Value<bool> includeInNetWorth;
+  final Value<bool> includeInTotalMoney;
+  final Value<String?> note;
   final Value<String?> currencyCode;
   final Value<Money?> minimumBalance;
   const AccountsCompanion({
@@ -981,6 +1071,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     this.showTransferIn = const Value.absent(),
     this.showTransferOut = const Value.absent(),
     this.includeInNetWorth = const Value.absent(),
+    this.includeInTotalMoney = const Value.absent(),
+    this.note = const Value.absent(),
     this.currencyCode = const Value.absent(),
     this.minimumBalance = const Value.absent(),
   });
@@ -1003,6 +1095,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     this.showTransferIn = const Value.absent(),
     this.showTransferOut = const Value.absent(),
     this.includeInNetWorth = const Value.absent(),
+    this.includeInTotalMoney = const Value.absent(),
+    this.note = const Value.absent(),
     this.currencyCode = const Value.absent(),
     this.minimumBalance = const Value.absent(),
   }) : name = Value(name),
@@ -1030,6 +1124,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     Expression<bool>? showTransferIn,
     Expression<bool>? showTransferOut,
     Expression<bool>? includeInNetWorth,
+    Expression<bool>? includeInTotalMoney,
+    Expression<String>? note,
     Expression<String>? currencyCode,
     Expression<int>? minimumBalance,
   }) {
@@ -1052,6 +1148,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
       if (showTransferIn != null) 'show_transfer_in': showTransferIn,
       if (showTransferOut != null) 'show_transfer_out': showTransferOut,
       if (includeInNetWorth != null) 'include_in_net_worth': includeInNetWorth,
+      if (includeInTotalMoney != null) 'include_in_total_money': includeInTotalMoney,
+      if (note != null) 'note': note,
       if (currencyCode != null) 'currency_code': currencyCode,
       if (minimumBalance != null) 'minimum_balance': minimumBalance,
     });
@@ -1076,6 +1174,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     Value<bool>? showTransferIn,
     Value<bool>? showTransferOut,
     Value<bool>? includeInNetWorth,
+    Value<bool>? includeInTotalMoney,
+    Value<String?>? note,
     Value<String?>? currencyCode,
     Value<Money?>? minimumBalance,
   }) {
@@ -1098,6 +1198,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
       showTransferIn: showTransferIn ?? this.showTransferIn,
       showTransferOut: showTransferOut ?? this.showTransferOut,
       includeInNetWorth: includeInNetWorth ?? this.includeInNetWorth,
+      includeInTotalMoney: includeInTotalMoney ?? this.includeInTotalMoney,
+      note: note ?? this.note,
       currencyCode: currencyCode ?? this.currencyCode,
       minimumBalance: minimumBalance ?? this.minimumBalance,
     );
@@ -1167,6 +1269,12 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     }
     if (includeInNetWorth.present) {
       map['include_in_net_worth'] = Variable<bool>(includeInNetWorth.value);
+    }
+    if (includeInTotalMoney.present) {
+      map['include_in_total_money'] = Variable<bool>(includeInTotalMoney.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
     }
     if (currencyCode.present) {
       map['currency_code'] = Variable<String>(currencyCode.value);
@@ -28374,6 +28482,8 @@ typedef $$AccountsTableCreateCompanionBuilder =
       Value<bool> showTransferIn,
       Value<bool> showTransferOut,
       Value<bool> includeInNetWorth,
+      Value<bool> includeInTotalMoney,
+      Value<String?> note,
       Value<String?> currencyCode,
       Value<Money?> minimumBalance,
     });
@@ -28397,6 +28507,8 @@ typedef $$AccountsTableUpdateCompanionBuilder =
       Value<bool> showTransferIn,
       Value<bool> showTransferOut,
       Value<bool> includeInNetWorth,
+      Value<bool> includeInTotalMoney,
+      Value<String?> note,
       Value<String?> currencyCode,
       Value<Money?> minimumBalance,
     });
@@ -28728,6 +28840,16 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<bool> get includeInNetWorth => $composableBuilder(
     column: $table.includeInNetWorth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get includeInTotalMoney => $composableBuilder(
+    column: $table.includeInTotalMoney,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -29133,6 +29255,16 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get includeInTotalMoney => $composableBuilder(
+    column: $table.includeInTotalMoney,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get currencyCode => $composableBuilder(
     column: $table.currencyCode,
     builder: (column) => ColumnOrderings(column),
@@ -29240,6 +29372,16 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<bool> get includeInNetWorth => $composableBuilder(
     column: $table.includeInNetWorth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get includeInTotalMoney => $composableBuilder(
+    column: $table.includeInTotalMoney,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get note => $composableBuilder(
+    column: $table.note,
     builder: (column) => column,
   );
 
@@ -29613,6 +29755,8 @@ class $$AccountsTableTableManager
                 Value<bool> showTransferIn = const Value.absent(),
                 Value<bool> showTransferOut = const Value.absent(),
                 Value<bool> includeInNetWorth = const Value.absent(),
+                Value<bool> includeInTotalMoney = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<String?> currencyCode = const Value.absent(),
                 Value<Money?> minimumBalance = const Value.absent(),
               }) => AccountsCompanion(
@@ -29634,6 +29778,8 @@ class $$AccountsTableTableManager
                 showTransferIn: showTransferIn,
                 showTransferOut: showTransferOut,
                 includeInNetWorth: includeInNetWorth,
+                includeInTotalMoney: includeInTotalMoney,
+                note: note,
                 currencyCode: currencyCode,
                 minimumBalance: minimumBalance,
               ),
@@ -29657,6 +29803,8 @@ class $$AccountsTableTableManager
                 Value<bool> showTransferIn = const Value.absent(),
                 Value<bool> showTransferOut = const Value.absent(),
                 Value<bool> includeInNetWorth = const Value.absent(),
+                Value<bool> includeInTotalMoney = const Value.absent(),
+                Value<String?> note = const Value.absent(),
                 Value<String?> currencyCode = const Value.absent(),
                 Value<Money?> minimumBalance = const Value.absent(),
               }) => AccountsCompanion.insert(
@@ -29678,6 +29826,8 @@ class $$AccountsTableTableManager
                 showTransferIn: showTransferIn,
                 showTransferOut: showTransferOut,
                 includeInNetWorth: includeInNetWorth,
+                includeInTotalMoney: includeInTotalMoney,
+                note: note,
                 currencyCode: currencyCode,
                 minimumBalance: minimumBalance,
               ),

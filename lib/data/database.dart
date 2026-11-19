@@ -283,7 +283,7 @@ class AppDatabase extends _$AppDatabase {
       );
 
   @override
-  int get schemaVersion => 95;
+  int get schemaVersion => 96;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -935,6 +935,11 @@ class AppDatabase extends _$AppDatabase {
       if (from < 95) {
         // The interface language (#191); null follows the phone.
         await _addColumnIfMissing(m, settings, settings.languageCode);
+      }
+      if (from < 96) {
+        // Exclude account from Total money without affecting Net Worth, and account notes.
+        await _addColumnIfMissing(m, accounts, accounts.includeInTotalMoney);
+        await _addColumnIfMissing(m, accounts, accounts.note);
       }
     },
     beforeOpen: (details) async {
@@ -2584,6 +2589,7 @@ class AppDatabase extends _$AppDatabase {
     required String iconKey,
     int? categoryId,
     String? notes,
+    bool includeInTotalMoney = true,
   }) {
     if (!targetAmount.isPositive) {
       throw ArgumentError(tr('Target amount must be greater than zero.'));
@@ -2597,6 +2603,7 @@ class AppDatabase extends _$AppDatabase {
           iconKey: iconKey,
           openingBalance: const Money.zero(),
           currentBalance: const Money.zero(),
+          includeInTotalMoney: Value(includeInTotalMoney),
         ),
       );
       await into(goalDetails).insert(
@@ -2622,6 +2629,7 @@ class AppDatabase extends _$AppDatabase {
     required String iconKey,
     int? categoryId,
     String? notes,
+    bool? includeInTotalMoney,
   }) {
     if (!targetAmount.isPositive) {
       throw ArgumentError(tr('Target amount must be greater than zero.'));
@@ -2632,6 +2640,9 @@ class AppDatabase extends _$AppDatabase {
           name: Value(name),
           colorValue: Value(colorValue),
           iconKey: Value(iconKey),
+          includeInTotalMoney: includeInTotalMoney != null
+              ? Value(includeInTotalMoney)
+              : const Value.absent(),
         ),
       );
       await (update(
@@ -2701,6 +2712,7 @@ class AppDatabase extends _$AppDatabase {
     DateTime? startDate,
     int? autoPayFromAccountId,
     DateTime? autoPayStartsOn,
+    bool includeInTotalMoney = true,
   }) {
     if (!principal.isPositive) {
       throw ArgumentError(tr('Principal must be greater than zero.'));
@@ -2724,6 +2736,7 @@ class AppDatabase extends _$AppDatabase {
           iconKey: iconKey,
           openingBalance: negative,
           currentBalance: negative,
+          includeInTotalMoney: Value(includeInTotalMoney),
         ),
       );
       await into(loanDetails).insert(
@@ -2764,6 +2777,7 @@ class AppDatabase extends _$AppDatabase {
     double? interestRatePct,
     int? tenureMonths,
     DateTime? startDate,
+    bool? includeInTotalMoney,
   }) {
     if (principal != null && !principal.isPositive) {
       throw ArgumentError(tr('Enter the amount borrowed (greater than zero).'));
@@ -2784,6 +2798,9 @@ class AppDatabase extends _$AppDatabase {
           iconKey: Value(iconKey),
           openingBalance: principalChanged
               ? Value(Money.fromPaise(-effectivePrincipal.paise))
+              : const Value.absent(),
+          includeInTotalMoney: includeInTotalMoney != null
+              ? Value(includeInTotalMoney)
               : const Value.absent(),
         ),
       );
@@ -3870,11 +3887,23 @@ class AppDatabase extends _$AppDatabase {
             ]))
           .watch();
 
-  /// Total money — every account that holds money: cash, bank, cards,
+  /// Total money — every balance-holding account where [Accounts.includeInTotalMoney]
+  /// is true. Accounts excluded from Total money (e.g. locker cash, secret fund)
+  /// do not count toward this figure, but continue to count toward [watchNetWorth].
+  Stream<Money> watchTotalMoney() =>
+      watchBalanceHoldingAccounts().asyncMap((rows) async {
+        var total = const Money.zero();
+        for (final a in rows) {
+          if (!a.includeInTotalMoney) continue;
+          total += await _balanceInBase(a);
+        }
+        return total;
+      });
+
+  /// Total Net Worth — every account that holds money: cash, bank, cards,
   /// goals, loans. Instruments (debit cards) never double-count. It is the
-  /// real total (GitHub #198): [Accounts.includeInNetWorth] no longer takes
-  /// an account out of it — that switch picks the accounts in
-  /// [watchAvailableBalance] instead.
+  /// real total net worth across all accounts: [Accounts.includeInTotalMoney]
+  /// does NOT affect this calculation.
   ///
   /// A foreign-currency account's balance is converted using **today's**
   /// rate, not a snapshot — Net Worth is a "right now" figure, unlike a
@@ -3899,23 +3928,26 @@ class AppDatabase extends _$AppDatabase {
       watchBalanceHoldingAccounts().asyncMap((rows) async {
         var total = const Money.zero();
         for (final a in rows) {
-          if (!a.includeInNetWorth) continue;
+          if (!a.includeInNetWorth || !a.includeInTotalMoney) continue;
           total += await _balanceInBase(a);
         }
         return total;
       });
 
-  /// [watchNetWorth] split in two (GitHub #183): what you own — every
-  /// account in credit — and what you owe — every one in debt, a card's
-  /// bill or a loan, as a positive amount. Split by each balance's sign,
-  /// not its account type, so an overpaid card counts as owned and an
-  /// overdrawn bank as owed. `assets - liabilities` is always the net worth
-  /// — every account, like [watchNetWorth].
-  Stream<({Money assets, Money liabilities})> watchAssetsAndLiabilities() =>
+  /// [watchTotalMoney] (or [watchNetWorth] when [totalMoneyOnly] is false)
+  /// split in two (GitHub #183): what you own — accounts in credit — and
+  /// what you owe — accounts in debt, card bills, or loans, as a positive
+  /// amount. Split by each balance's sign, not account type.
+  /// When [totalMoneyOnly] is true (the default), accounts excluded from Total
+  /// money are excluded so `assets - liabilities` always equals [watchTotalMoney].
+  Stream<({Money assets, Money liabilities})> watchAssetsAndLiabilities({
+    bool totalMoneyOnly = true,
+  }) =>
       watchBalanceHoldingAccounts().asyncMap((rows) async {
         var assets = const Money.zero();
         var liabilities = const Money.zero();
         for (final a in rows) {
+          if (totalMoneyOnly && !a.includeInTotalMoney) continue;
           final balance = await _balanceInBase(a);
           if (balance.isNegative) {
             liabilities -= balance;
@@ -3956,6 +3988,20 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setAccountIncludeInNetWorth(int id, bool value) =>
       (update(accounts)..where((a) => a.id.equals(id))).write(
         AccountsCompanion(includeInNetWorth: Value(value)),
+      );
+
+  /// Sets whether [id] is included in everyday Total money.
+  Future<void> setAccountIncludeInTotalMoney(int id, bool value) =>
+      (update(accounts)..where((a) => a.id.equals(id))).write(
+        AccountsCompanion(includeInTotalMoney: Value(value)),
+      );
+
+  /// Updates the note on account [id].
+  Future<void> updateAccountNote(int id, String? note) =>
+      (update(accounts)..where((a) => a.id.equals(id))).write(
+        AccountsCompanion(
+          note: Value(note?.trim().isEmpty == true ? null : note?.trim()),
+        ),
       );
 
   /// Everyday categories of [kind] — a mode's own ones (see
@@ -4171,6 +4217,8 @@ class AppDatabase extends _$AppDatabase {
     required String iconKey,
     required Money openingBalance,
     String? currencyCode,
+    bool includeInTotalMoney = true,
+    String? note,
   }) {
     if (type == AccountType.card && cardKind == null) {
       throw ArgumentError(tr('A card must be credit or debit.'));
@@ -4217,6 +4265,8 @@ class AppDatabase extends _$AppDatabase {
           openingBalance: opening,
           currentBalance: opening,
           envelopeMode: Value(envelopeByDefault),
+          includeInTotalMoney: Value(includeInTotalMoney),
+          note: Value(note?.trim().isEmpty == true ? null : note?.trim()),
         ),
       );
     });
@@ -4262,6 +4312,8 @@ class AppDatabase extends _$AppDatabase {
     required String name,
     required String iconKey,
     required int colorValue,
+    Value<bool> includeInTotalMoney = const Value.absent(),
+    Value<String?> note = const Value.absent(),
   }) {
     final trimmed = name.trim();
     if (trimmed.isEmpty) {
@@ -4272,6 +4324,8 @@ class AppDatabase extends _$AppDatabase {
         name: Value(trimmed),
         iconKey: Value(iconKey),
         colorValue: Value(colorValue),
+        includeInTotalMoney: includeInTotalMoney,
+        note: note,
       ),
     );
   }
@@ -7251,7 +7305,7 @@ class AppDatabase extends _$AppDatabase {
   Future<void> setLanguageCode(String? code) =>
       update(settings).write(SettingsCompanion(languageCode: Value(code)));
 
-  /// The 7 destinations a configurable bottom-nav slot can hold — Dashboard
+  /// The 8 destinations a configurable bottom-nav slot can hold — Dashboard
   /// and More are pinned and deliberately excluded (see GitHub #70's design
   /// spec, "Non-goals").
   static const bottomNavCatalogIds = {
@@ -7262,6 +7316,7 @@ class AppDatabase extends _$AppDatabase {
     'accounts',
     'stats',
     'payees',
+    'categories',
   };
 
   Future<void> setBottomNavSlots(String left, String right) async {

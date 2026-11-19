@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../core/budget_cycle.dart';
@@ -57,7 +58,14 @@ final balanceAccountsProvider = StreamProvider<List<AccountRow>>(
   (ref) => ref.watch(dbProvider).watchBalanceHoldingAccounts(),
 );
 
-/// Total money — every account (GitHub #198). See
+/// Total money — balance-holding accounts with [includeInTotalMoney] enabled.
+/// Excludes opted-out accounts, leaving Net Worth unaffected. See
+/// [AppDatabase.watchTotalMoney].
+final totalMoneyProvider = StreamProvider<Money>(
+  (ref) => ref.watch(dbProvider).watchTotalMoney(),
+);
+
+/// True Net Worth — every account that holds money (GitHub #198). See
 /// [AppDatabase.watchNetWorth].
 final netWorthProvider = StreamProvider<Money>(
   (ref) => ref.watch(dbProvider).watchNetWorth(),
@@ -70,10 +78,21 @@ final availableBalanceProvider = StreamProvider<Money>(
 );
 
 /// Net worth as what you own and what you owe (GitHub #183).
-final assetsAndLiabilitiesProvider =
+final netWorthAssetsAndLiabilitiesProvider =
     StreamProvider<({Money assets, Money liabilities})>(
-      (ref) => ref.watch(dbProvider).watchAssetsAndLiabilities(),
+      (ref) =>
+          ref.watch(dbProvider).watchAssetsAndLiabilities(totalMoneyOnly: false),
     );
+
+/// Total money split into what you own and what you owe (GitHub #183).
+final totalMoneyAssetsAndLiabilitiesProvider =
+    StreamProvider<({Money assets, Money liabilities})>(
+      (ref) =>
+          ref.watch(dbProvider).watchAssetsAndLiabilities(totalMoneyOnly: true),
+    );
+
+/// Defaults to Total money assets and liabilities so own/owe nets to Total money.
+final assetsAndLiabilitiesProvider = totalMoneyAssetsAndLiabilitiesProvider;
 
 // ── Categories ──────────────────────────────────────────────────────────────
 
@@ -231,6 +250,9 @@ final calendarGoToTodaySignalProvider = StateProvider<int>((ref) => 0);
 /// Same idiom, for the ➕ action: money in, money out or a reminder on the
 /// selected day.
 final calendarAddSignalProvider = StateProvider<int>((ref) => 0);
+
+/// Signal provider for the ➕ action in AppShell's top bar when Categories tab is active.
+final categoryAddSignalProvider = StateProvider<int>((ref) => 0);
 
 /// True while the embedded `CalendarScreen` has anything but today selected
 /// — another day of this month included — so `AppShell` shows its "Today"
@@ -654,19 +676,192 @@ final widgetBudgetSummaryProvider = Provider<List<WidgetBudgetLine>>((ref) {
 });
 
 /// The "This Month" home-screen widget's content — this calendar month's
-/// income and expense totals. Deliberately not [monthTotalsProvider]: that
-/// one follows [selectedMonthProvider], which Stats/Calendar can point at a
-/// different month, and the widget must always mean "this month", not
-/// "whatever month was last browsed". See `HomeWidgetService`.
-final widgetMonthSummaryProvider = Provider<({Money income, Money expense})>((
-  ref,
-) {
-  final months = ref.watch(monthlyTotalsProvider(1));
-  if (months.isEmpty) {
-    return (income: const Money.zero(), expense: const Money.zero());
+/// income and expense totals, plus total savings from goals. Deliberately not
+/// [monthTotalsProvider]: that one follows [selectedMonthProvider], which
+/// Stats/Calendar can point at a different month, and the widget must always
+/// mean "this month", not "whatever month was last browsed". See `HomeWidgetService`.
+final widgetMonthSummaryProvider =
+    Provider<({Money income, Money expense, Money totalSavings})>((ref) {
+      final months = ref.watch(monthlyTotalsProvider(1));
+      final goals = ref.watch(goalProgressListProvider);
+      final totalSavings = goals.fold(
+        const Money.zero(),
+        (sum, g) => sum + g.saved,
+      );
+      if (months.isEmpty) {
+        return (
+          income: const Money.zero(),
+          expense: const Money.zero(),
+          totalSavings: totalSavings,
+        );
+      }
+      final current = months.single;
+      return (
+        income: current.income,
+        expense: current.expense,
+        totalSavings: totalSavings,
+      );
+    });
+
+/// Content for the "Goals & Loans" home-screen widget: up to [HomeWidgetService.maxGoalLines]
+/// active savings goals and loan balances, plus total saved and total debt.
+final widgetGoalsSummaryProvider =
+    Provider<({List<WidgetGoalLine> lines, Money totalSaved, Money totalDebt})>(
+      (ref) {
+        final goals = ref.watch(goalProgressListProvider);
+        final loans = ref.watch(loanProgressListProvider);
+
+        final totalSaved = goals.fold(
+          const Money.zero(),
+          (sum, g) => sum + g.saved,
+        );
+        final totalDebt = loans
+            .where((l) => !l.outstanding.isZero)
+            .fold(const Money.zero(), (sum, l) => sum + l.outstanding);
+
+        final activeGoals = goals.where((g) => !g.reached).toList();
+        final activeLoans = loans.where((l) => !l.outstanding.isZero).toList();
+
+        final activeGoalLines = <WidgetGoalLine>[
+          for (final g in activeGoals)
+            (
+              name: g.account.name,
+              kind: 'GOAL',
+              value:
+                  '${MoneyFormat.symbol(g.saved)} / ${MoneyFormat.symbol(g.detail.targetAmount)}',
+              percent: (g.fraction * 100).round().clamp(0, 100),
+              subtitle: '${(g.fraction * 100).round().clamp(0, 100)}% funded',
+            ),
+        ];
+
+        final activeLoanLines = <WidgetGoalLine>[
+          for (final l in activeLoans)
+            (
+              name: l.account.name,
+              kind: 'LOAN',
+              value: '${MoneyFormat.symbol(l.outstanding)} left',
+              percent: (l.fraction * 100).round().clamp(0, 100),
+              subtitle: l.emi != null
+                  ? '${(l.fraction * 100).round().clamp(0, 100)}% paid · EMI: ${MoneyFormat.symbol(l.emi!)}'
+                  : '${(l.fraction * 100).round().clamp(0, 100)}% paid',
+            ),
+        ];
+
+        final goalLines = <WidgetGoalLine>[
+          ...activeGoalLines,
+          for (final g in goals.where((g) => g.reached))
+            (
+              name: g.account.name,
+              kind: 'GOAL',
+              value:
+                  '${MoneyFormat.symbol(g.saved)} / ${MoneyFormat.symbol(g.detail.targetAmount)}',
+              percent: 100,
+              subtitle: '100% · Reached',
+            ),
+        ];
+
+        final loanLines = <WidgetGoalLine>[
+          ...activeLoanLines,
+          for (final l in loans.where((l) => l.outstanding.isZero))
+            (
+              name: l.account.name,
+              kind: 'LOAN',
+              value: '₹0 left',
+              percent: 100,
+              subtitle: '100% · Paid off',
+            ),
+        ];
+
+        // Dedicated split: up to 3 goals and up to 2 loans
+        final lines = <WidgetGoalLine>[
+          ...goalLines.take(3),
+          ...loanLines.take(2),
+        ];
+
+        return (
+          lines: lines,
+          totalSaved: totalSaved,
+          totalDebt: totalDebt,
+        );
+      },
+    );
+
+/// Content for the "Spending Extremes" (Min & Max Spent) home-screen widget:
+/// lowest and highest expenses for the current month (or all-time fallback),
+/// with amount, date, category tag, and transaction IDs for deep linking.
+final widgetSpendingExtremesProvider = Provider<({
+  String? minAmount,
+  String? minDate,
+  String? minTag,
+  int? minTxId,
+  String? maxAmount,
+  String? maxDate,
+  String? maxTag,
+  int? maxTxId,
+})>((ref) {
+  final allTx = ref.watch(allTransactionsProvider).valueOrNull ?? const [];
+  final categories = ref.watch(categoryMapProvider);
+
+  final now = DateTime.now();
+  final allExpenses = allTx
+      .where((t) => t.type == TxType.expense && t.amount.isPositive)
+      .toList();
+
+  final thisMonthExpenses = allExpenses
+      .where((t) => t.date.year == now.year && t.date.month == now.month)
+      .toList();
+
+  final candidateExpenses =
+      thisMonthExpenses.isNotEmpty ? thisMonthExpenses : allExpenses;
+
+  if (candidateExpenses.isEmpty) {
+    return (
+      minAmount: null,
+      minDate: null,
+      minTag: null,
+      minTxId: null,
+      maxAmount: null,
+      maxDate: null,
+      maxTag: null,
+      maxTxId: null,
+    );
   }
-  final current = months.single;
-  return (income: current.income, expense: current.expense);
+
+  TransactionRow minTx = candidateExpenses.first;
+  TransactionRow maxTx = candidateExpenses.first;
+
+  for (final t in candidateExpenses) {
+    if (t.amount < minTx.amount) minTx = t;
+    if (t.amount > maxTx.amount) maxTx = t;
+  }
+
+  String formatTag(TransactionRow tx) {
+    if (tx.categoryId != null && categories.containsKey(tx.categoryId)) {
+      final name = categories[tx.categoryId]!.name.trim();
+      if (name.isNotEmpty) return '# $name';
+    }
+    if (tx.payee != null && tx.payee!.trim().isNotEmpty) {
+      return '# ${tx.payee!.trim()}';
+    }
+    if (tx.note != null && tx.note!.trim().isNotEmpty) {
+      final firstWord = tx.note!.trim().split(' ').first;
+      return '# $firstWord';
+    }
+    return '# Expense';
+  }
+
+  final dateFormat = DateFormat('d MMM yyyy HH:mm');
+
+  return (
+    minAmount: MoneyFormat.symbol(minTx.amount),
+    minDate: dateFormat.format(minTx.date),
+    minTag: formatTag(minTx),
+    minTxId: minTx.id,
+    maxAmount: MoneyFormat.symbol(maxTx.amount),
+    maxDate: dateFormat.format(maxTx.date),
+    maxTag: formatTag(maxTx),
+    maxTxId: maxTx.id,
+  );
 });
 
 // ── Envelope Mode ────────────────────────────────────────────────────────────
@@ -1970,7 +2165,7 @@ LoanProgress _loanProgressOf(
       : const Money.zero();
   final paid = principal - outstanding;
   final fraction = principal.isZero
-      ? 1.0
+      ? (outstanding.isZero ? 1.0 : 0.0)
       : (paid.paise / principal.paise).clamp(0.0, 1.0);
 
   // Every interest expense ever posted against this loan — any expense
@@ -2796,6 +2991,7 @@ final periodNetWorthProvider =
         );
         var total = const Money.zero();
         for (final a in holding) {
+          if (!a.includeInTotalMoney) continue;
           if (availableOnly && !a.includeInNetWorth) continue;
           final balance = balances[a.id] ?? const Money.zero();
           final rate = a.currencyCode == null ? null : rateOf[a.currencyCode];

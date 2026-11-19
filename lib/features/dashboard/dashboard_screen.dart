@@ -428,14 +428,14 @@ class _NetWorthCardState extends ConsumerState<_NetWorthCard> {
       _MoneyMetric.loan => tr('Loan'),
     };
 
-    // Today's net worth keeps its own AsyncValue (a live DB stream) so its
+    // Today's total money keeps its own AsyncValue (a live DB stream) so its
     // loading/error states stay exactly as they were. Everything else —
-    // every metric, and net worth at a past month's close — is a plain
+    // every metric, and total money at a past month's close — is a plain
     // composition over already-watched streams (see the "compose, don't
     // resubscribe" note above [netWorthTrendProvider]), so it has no error
     // state of its own; it is simply not ready until they are.
-    final netWorth = metric == null && !past
-        ? ref.watch(netWorthProvider)
+    final totalMoney = metric == null && !past
+        ? ref.watch(totalMoneyProvider)
         : null;
 
     List<double> trendValues = const [];
@@ -457,7 +457,7 @@ class _NetWorthCardState extends ConsumerState<_NetWorthCard> {
           delta = money.trend.last - money.opening;
           opening = money.opening;
         }
-        headline = past ? money?.trend.last : netWorth!.valueOrNull;
+        headline = past ? money?.trend.last : totalMoney!.valueOrNull;
         available = past
             ? money?.available
             : ref.watch(availableBalanceProvider).valueOrNull;
@@ -607,8 +607,8 @@ class _NetWorthCardState extends ConsumerState<_NetWorthCard> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          if (netWorth != null)
-                            netWorth.when(
+                          if (totalMoney != null)
+                            totalMoney.when(
                               data: (money) => _BoldGradientText(
                                 active: isBold,
                                 child: AnimatedBalanceText(

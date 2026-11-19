@@ -179,16 +179,32 @@ class SavingsGoalDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           AppCard(
-            child: AppSwitchListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-              title: const Tr('Show in Money in / out'),
-              subtitle: const Tr(
-                'Pay or receive straight from this goal, like a pocket of '
-                'your bank account. Off: only transfers move its money.',
-              ),
-              value: detail.showInMoneyInOut,
-              onChanged: (v) =>
-                  ref.read(dbProvider).setGoalShowInMoneyInOut(account.id, v),
+            child: Column(
+              children: [
+                AppSwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  title: const Tr('Show in Money in / out'),
+                  subtitle: const Tr(
+                    'Pay or receive straight from this goal, like a pocket of '
+                    'your bank account. Off: only transfers move its money.',
+                  ),
+                  value: detail.showInMoneyInOut,
+                  onChanged: (v) =>
+                      ref.read(dbProvider).setGoalShowInMoneyInOut(account.id, v),
+                ),
+                const Divider(height: 1, indent: 20, endIndent: 20),
+                AppSwitchListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                  title: const Tr('Show in total money'),
+                  subtitle: const Tr(
+                    'Include this goal in Total money. It will always remain in Net worth.',
+                  ),
+                  value: account.includeInTotalMoney,
+                  onChanged: (v) => ref
+                      .read(dbProvider)
+                      .setAccountIncludeInTotalMoney(account.id, v),
+                ),
+              ],
             ),
           ),
           if (!progress.reached) ...[

@@ -5,22 +5,43 @@
     <string name="app_name">XPENC</string>
 
     <!-- Balance home-screen widget. -->
+    <string name="widget_balance_label">Total Balance</string>
     <string name="widget_total_balance">Total balance</string>
     <string name="widget_add_expense">+ Money out</string>
     <string name="widget_add_income">+ Money in</string>
     <string name="widget_description">Your total balance, with one-tap shortcuts to log money in or out.</string>
 
     <!-- Budgets home-screen widget. -->
+    <string name="widget_budgets_label">Budgets</string>
     <string name="widget_budgets_title">Budgets</string>
     <string name="widget_budgets_empty">No budgets set — add one in the app.</string>
     <string name="widget_budgets_description">Your top budgets, closest to their limit first.</string>
 
     <!-- Quick Add home-screen widget. -->
+    <string name="widget_quick_add_label">Quick Add</string>
+    <string name="widget_quick_add_title">Quick Add</string>
     <string name="widget_quick_add_description">One-tap shortcuts to log money in or out — nothing else.</string>
 
     <!-- This Month home-screen widget. -->
+    <string name="widget_month_label">This Month</string>
     <string name="widget_month_title">This month</string>
     <string name="widget_month_income_label">Money in</string>
     <string name="widget_month_expense_label">Money out</string>
+    <string name="widget_month_net_savings_label">Total balance: %1$s</string>
+    <string name="widget_month_total_savings_label">Total saved: %1$s</string>
     <string name="widget_month_description">This month\'s money in and out totals, at a glance.</string>
+
+    <!-- Goals & Loans home-screen widget. -->
+    <string name="widget_goals_label">Goals &amp; Loans</string>
+    <string name="widget_goals_title">Goals &amp; Loans</string>
+    <string name="widget_goals_empty">No active goals or loans — add one in Goals &amp; Loans.</string>
+    <string name="widget_goals_description">Your savings goals and loan balances, with progress at a glance.</string>
+
+    <!-- Spending Extremes (Min & Max Spent) home-screen widget. -->
+    <string name="widget_extremes_label">Min &amp; Max Spent</string>
+    <string name="widget_extremes_title">Min &amp; Max Spent</string>
+    <string name="widget_extremes_min_label">Minimum spent</string>
+    <string name="widget_extremes_max_label">Maximum spent</string>
+    <string name="widget_extremes_empty">No expenses logged yet.</string>
+    <string name="widget_extremes_description">Your lowest and highest expenses with date and category, side by side.</string>
 </resources>

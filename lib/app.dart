@@ -147,6 +147,24 @@ class _XpencAppState extends ConsumerState<XpencApp>
     await homeWidget.updateMonthSummary(
       monthSummary.income,
       monthSummary.expense,
+      totalSavings: monthSummary.totalSavings,
+    );
+    final goalsSummary = ref.read(widgetGoalsSummaryProvider);
+    await homeWidget.updateGoalsSummary(
+      goalsSummary.lines,
+      totalSaved: goalsSummary.totalSaved,
+      totalDebt: goalsSummary.totalDebt,
+    );
+    final extremes = ref.read(widgetSpendingExtremesProvider);
+    await homeWidget.updateSpendingExtremes(
+      minAmount: extremes.minAmount,
+      minDate: extremes.minDate,
+      minTag: extremes.minTag,
+      minTxId: extremes.minTxId,
+      maxAmount: extremes.maxAmount,
+      maxDate: extremes.maxDate,
+      maxTag: extremes.maxTag,
+      maxTxId: extremes.maxTxId,
     );
 
     final notifications = ref.read(notificationServiceProvider);
@@ -522,7 +540,30 @@ class _XpencAppState extends ConsumerState<XpencApp>
     ref.listen(widgetMonthSummaryProvider, (_, next) {
       ref
           .read(homeWidgetServiceProvider)
-          .updateMonthSummary(next.income, next.expense);
+          .updateMonthSummary(next.income, next.expense, totalSavings: next.totalSavings);
+    });
+    ref.listen(widgetGoalsSummaryProvider, (_, next) {
+      ref
+          .read(homeWidgetServiceProvider)
+          .updateGoalsSummary(
+            next.lines,
+            totalSaved: next.totalSaved,
+            totalDebt: next.totalDebt,
+          );
+    });
+    ref.listen(widgetSpendingExtremesProvider, (_, next) {
+      ref
+          .read(homeWidgetServiceProvider)
+          .updateSpendingExtremes(
+            minAmount: next.minAmount,
+            minDate: next.minDate,
+            minTag: next.minTag,
+            minTxId: next.minTxId,
+            maxAmount: next.maxAmount,
+            maxDate: next.maxDate,
+            maxTag: next.maxTag,
+            maxTxId: next.maxTxId,
+          );
     });
 
     // XPENC web's built-in Connector syncs while the app is open — once the

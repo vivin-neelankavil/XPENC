@@ -8,5 +8,6 @@
     android:initialLayout="@layout/month_summary_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_preview_month_summary"
     android:description="@string/widget_month_description">
 </appwidget-provider>

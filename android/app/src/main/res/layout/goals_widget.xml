@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Goals & Loans home-screen widget showcasing savings goals and loan balances.
+     Features dedicated GOALS and LOANS sections with clear separation, progress
+     bars, and a top summary banner. Tapping anywhere opens Accounts. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="13dp">
+
+    <!-- Header title -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_goals_title"
+        android:textSize="11sp"
+        android:textStyle="bold"
+        android:letterSpacing="0.08"
+        android:textColor="@color/widget_text_secondary" />
+
+    <!-- Top summary banner: Saved vs Debt -->
+    <LinearLayout
+        android:id="@+id/widget_goals_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/widget_banner_bg"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="10dp"
+        android:paddingEnd="10dp"
+        android:paddingTop="5dp"
+        android:paddingBottom="5dp">
+
+        <TextView
+            android:id="@+id/widget_goals_total_saved"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/widget_income"
+            tools:text="Saved: ₹9,63,979.00" />
+
+        <TextView
+            android:id="@+id/widget_goals_total_debt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textColor="@color/widget_expense"
+            tools:text="Debt: ₹7,00,753.00" />
+    </LinearLayout>
+
+    <!-- ================= GOALS SECTION ================= -->
+    <LinearLayout
+        android:id="@+id/widget_section_goals"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GOALS"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="@color/widget_income" />
+
+            <TextView
+                android:id="@+id/widget_goals_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="(3)" />
+        </LinearLayout>
+
+        <!-- Goal 1 -->
+        <LinearLayout
+            android:id="@+id/widget_goal_item_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_goal_name_1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_text_primary"
+                    tools:text="LIC Jeevan Ananth" />
+
+                <TextView
+                    android:id="@+id/widget_goal_value_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/widget_text_secondary"
+                    tools:text="₹2,48,110.00 / ₹4,61,600.00" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/widget_goal_progress_1"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="54"
+                android:progressDrawable="@drawable/widget_progress_bar" />
+
+            <TextView
+                android:id="@+id/widget_goal_sub_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="54% funded" />
+        </LinearLayout>
+
+        <!-- Goal 2 -->
+        <LinearLayout
+            android:id="@+id/widget_goal_item_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_goal_name_2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_text_primary"
+                    tools:text="PPF" />
+
+                <TextView
+                    android:id="@+id/widget_goal_value_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/widget_text_secondary"
+                    tools:text="₹1,65,869.00 / ₹5,40,000.00" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/widget_goal_progress_2"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="31"
+                android:progressDrawable="@drawable/widget_progress_bar" />
+
+            <TextView
+                android:id="@+id/widget_goal_sub_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="31% funded" />
+        </LinearLayout>
+
+        <!-- Goal 3 -->
+        <LinearLayout
+            android:id="@+id/widget_goal_item_3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_goal_name_3"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_text_primary"
+                    tools:text="HDFC Life" />
+
+                <TextView
+                    android:id="@+id/widget_goal_value_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textColor="@color/widget_text_secondary"
+                    tools:text="₹4,55,000.00 / ₹15,00,000.00" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/widget_goal_progress_3"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="30"
+                android:progressDrawable="@drawable/widget_progress_bar" />
+
+            <TextView
+                android:id="@+id/widget_goal_sub_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="30% funded" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- ================= LOANS SECTION ================= -->
+    <LinearLayout
+        android:id="@+id/widget_section_loans"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="LOANS"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.08"
+                android:textColor="@color/widget_expense" />
+
+            <TextView
+                android:id="@+id/widget_loans_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="(1)" />
+        </LinearLayout>
+
+        <!-- Loan 1 -->
+        <LinearLayout
+            android:id="@+id/widget_loan_item_1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_loan_name_1"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_text_primary"
+                    tools:text="Car Loan" />
+
+                <TextView
+                    android:id="@+id/widget_loan_value_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_expense"
+                    tools:text="₹7,00,753.00 left" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/widget_loan_progress_1"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="0"
+                android:progressDrawable="@drawable/widget_progress_bar_loan" />
+
+            <TextView
+                android:id="@+id/widget_loan_sub_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="0% paid · EMI: ₹20,490.00" />
+        </LinearLayout>
+
+        <!-- Loan 2 -->
+        <LinearLayout
+            android:id="@+id/widget_loan_item_2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/widget_loan_name_2"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textColor="@color/widget_text_primary"
+                    tools:text="Home Loan" />
+
+                <TextView
+                    android:id="@+id/widget_loan_value_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_expense"
+                    tools:text="₹25,00,000 left" />
+            </LinearLayout>
+
+            <ProgressBar
+                android:id="@+id/widget_loan_progress_2"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="4dp"
+                android:layout_marginTop="2dp"
+                android:max="100"
+                android:progress="20"
+                android:progressDrawable="@drawable/widget_progress_bar_loan" />
+
+            <TextView
+                android:id="@+id/widget_loan_sub_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="1dp"
+                android:textSize="10sp"
+                android:textColor="@color/widget_text_secondary"
+                tools:text="20% paid · EMI: ₹35,000" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/widget_goals_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/widget_goals_empty"
+        android:textSize="13sp"
+        android:textColor="@color/widget_text_secondary"
+        android:visibility="gone" />
+</LinearLayout>

@@ -8,5 +8,6 @@
     android:initialLayout="@layout/quick_add_widget"
     android:resizeMode="horizontal"
     android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_preview_quick_add"
     android:description="@string/widget_quick_add_description">
 </appwidget-provider>

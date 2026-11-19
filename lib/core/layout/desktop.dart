@@ -285,12 +285,6 @@ List<_Section> _sections(WidgetRef ref) {
         module: 'calendar',
       ),
       _Destination(
-        Icons.savings_outlined,
-        tr('Goals & Loans'),
-        '/more/goals',
-        module: 'goals',
-      ),
-      _Destination(
         Icons.checklist_outlined,
         tr('Shopping List'),
         '/more/shopping',

@@ -12,12 +12,22 @@ import '../routing/app_router.dart';
 /// [HomeWidgetService.updateBudgetSummary].
 typedef WidgetBudgetLine = ({String name, Money spent, Money limit});
 
+/// One line on the Goals & Loans widget: name, kind ('goal' or 'loan'),
+/// formatted value string, progress percent (0..100), and optional subtitle.
+typedef WidgetGoalLine = ({
+  String name,
+  String kind,
+  String value,
+  int percent,
+  String? subtitle,
+});
+
 /// Bridges the app to the Android home-screen widgets — see
 /// `android/app/src/main/kotlin/com/yash/xpenc/` for the native side that
-/// renders whatever this saves. Four widgets share this one service:
+/// renders whatever this saves. Five widgets share this one service:
 /// Balance (net worth + shortcuts), Budgets (top budgets by usage), Quick
-/// Add (just the shortcuts, enlarged), and This Month (income vs expense
-/// for the current calendar month) — see GitHub's widget-section request.
+/// Add (just the shortcuts, enlarged), This Month (income vs expense + cards
+/// + net/total savings banner), and Goals & Loans (savings goals + loan balances).
 ///
 /// There is no background refresh: like message capture, this app has no
 /// background service, so a widget only updates while the app itself is
@@ -32,10 +42,16 @@ class HomeWidgetService {
   static const _budgetAndroidName = 'BudgetWidgetProvider';
   static const _quickAddAndroidName = 'QuickAddWidgetProvider';
   static const _monthSummaryAndroidName = 'MonthSummaryWidgetProvider';
+  static const _goalsAndroidName = 'GoalsWidgetProvider';
+  static const _extremesAndroidName = 'SpendingExtremesWidgetProvider';
 
   /// How many lines the Budgets widget's static layout has rows for — see
   /// `budget_widget.xml`.
   static const maxBudgetLines = 3;
+
+  /// How many lines the Goals widget's static layout has rows for — see
+  /// `goals_widget.xml`. Supports up to 3 goals + 2 loans.
+  static const maxGoalLines = 6;
 
   Future<void> updateBalance(Money netWorth) async {
     if (!PlatformFeatures.homeWidgets) return;
@@ -74,9 +90,16 @@ class HomeWidgetService {
     }
   }
 
-  Future<void> updateMonthSummary(Money income, Money expense) async {
+  Future<void> updateMonthSummary(
+    Money income,
+    Money expense, {
+    Money? totalSavings,
+  }) async {
     if (!PlatformFeatures.homeWidgets) return;
     try {
+      final net = income - expense;
+      final netFormatted = 'Total balance: ${MoneyFormat.signed(net)}';
+
       await HomeWidget.saveWidgetData<String>(
         'month_income',
         MoneyFormat.symbol(income),
@@ -85,9 +108,105 @@ class HomeWidgetService {
         'month_expense',
         MoneyFormat.symbol(expense),
       );
+      await HomeWidget.saveWidgetData<String>(
+        'month_net_savings',
+        netFormatted,
+      );
+      if (totalSavings != null && !totalSavings.isZero) {
+        await HomeWidget.saveWidgetData<String>(
+          'month_total_savings',
+          'Total saved: ${MoneyFormat.compact(totalSavings)}',
+        );
+      } else {
+        await HomeWidget.saveWidgetData<String?>('month_total_savings', null);
+      }
       await HomeWidget.updateWidget(androidName: _monthSummaryAndroidName);
     } catch (e) {
       debugPrint('HomeWidgetService.updateMonthSummary failed: $e');
+    }
+  }
+
+  Future<void> updateGoalsSummary(
+    List<WidgetGoalLine> lines, {
+    Money? totalSaved,
+    Money? totalDebt,
+  }) async {
+    if (!PlatformFeatures.homeWidgets) return;
+    try {
+      final json = jsonEncode([
+        for (final line in lines)
+          {
+            'name': line.name,
+            'kind': line.kind,
+            'value': line.value,
+            'percent': line.percent,
+            if (line.subtitle != null) 'subtitle': line.subtitle,
+          },
+      ]);
+      await HomeWidget.saveWidgetData<String>('goals_summary', json);
+      if (totalSaved != null) {
+        await HomeWidget.saveWidgetData<String>(
+          'goals_total_saved',
+          'Total saved: ${MoneyFormat.symbol(totalSaved)}',
+        );
+      }
+      if (totalDebt != null) {
+        await HomeWidget.saveWidgetData<String>(
+          'goals_total_debt',
+          'Total debt: ${MoneyFormat.symbol(totalDebt)}',
+        );
+      }
+      await HomeWidget.updateWidget(androidName: _goalsAndroidName);
+    } catch (e) {
+      debugPrint('HomeWidgetService.updateGoalsSummary failed: $e');
+    }
+  }
+
+  Future<void> updateSpendingExtremes({
+    String? minAmount,
+    String? minDate,
+    String? minTag,
+    int? minTxId,
+    String? maxAmount,
+    String? maxDate,
+    String? maxTag,
+    int? maxTxId,
+  }) async {
+    if (!PlatformFeatures.homeWidgets) return;
+    try {
+      if (minAmount != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_min_amount', minAmount);
+      }
+      if (minDate != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_min_date', minDate);
+      }
+      if (minTag != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_min_tag', minTag);
+      }
+      if (minTxId != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_min_id', minTxId.toString());
+      } else {
+        await HomeWidget.saveWidgetData<String?>('extremes_min_id', null);
+      }
+
+      if (maxAmount != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_max_amount', maxAmount);
+      }
+      if (maxDate != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_max_date', maxDate);
+      }
+      if (maxTag != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_max_tag', maxTag);
+      }
+      if (maxTxId != null) {
+        await HomeWidget.saveWidgetData<String>('extremes_max_id', maxTxId.toString());
+      } else {
+        await HomeWidget.saveWidgetData<String?>('extremes_max_id', null);
+      }
+
+      await HomeWidget.updateWidget(androidName: _extremesAndroidName);
+    } catch (e) {
+      debugPrint('HomeWidgetService.updateSpendingExtremes failed: $e');
     }
   }
 
@@ -118,6 +237,8 @@ class HomeWidgetService {
     HomeScreenWidget.budgets => _budgetAndroidName,
     HomeScreenWidget.quickAdd => _quickAddAndroidName,
     HomeScreenWidget.monthSummary => _monthSummaryAndroidName,
+    HomeScreenWidget.goals => _goalsAndroidName,
+    HomeScreenWidget.spendingExtremes => _extremesAndroidName,
   };
 
   /// Call once at startup. Covers both a cold start launched *from* a
@@ -131,7 +252,19 @@ class HomeWidgetService {
   }
 
   void _handleUri(Uri? uri) {
-    if (uri == null || uri.host != 'add') return;
+    if (uri == null) return;
+    if (uri.host == 'goals') {
+      appRouter.go('/accounts');
+      return;
+    }
+    if (uri.host == 'tx') {
+      final id = uri.queryParameters['id'];
+      if (id != null) {
+        appRouter.push('/transaction/$id');
+      }
+      return;
+    }
+    if (uri.host != 'add') return;
     // Only `expense`/`income` are ever sent by a widget — anything else
     // falls back to the screen's own default rather than a broken deep link.
     final type = uri.queryParameters['type'];
@@ -139,5 +272,12 @@ class HomeWidgetService {
   }
 }
 
-/// The four preset home-screen widgets — see the doc on [HomeWidgetService].
-enum HomeScreenWidget { balance, budgets, quickAdd, monthSummary }
+/// The six preset home-screen widgets — see the doc on [HomeWidgetService].
+enum HomeScreenWidget {
+  balance,
+  budgets,
+  quickAdd,
+  monthSummary,
+  goals,
+  spendingExtremes,
+}

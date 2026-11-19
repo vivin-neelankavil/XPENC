@@ -108,6 +108,12 @@ class AppShell extends ConsumerWidget {
       Icons.storefront_rounded,
       'Payees',
     ),
+    'categories': _TabSpec(
+      9,
+      Icons.category_outlined,
+      Icons.category_rounded,
+      'Categories',
+    ),
   };
 
   static (String, String) _slotIds(WidgetRef ref) {
@@ -1071,6 +1077,7 @@ const bottomNavCatalogLabels = <String, String>{
   'accounts': 'Accounts',
   'stats': 'Stats',
   'payees': 'Payees',
+  'categories': 'Categories',
 };
 
 /// Catalog ids Basic mode (see [AppMode]) has nothing to show for — no
@@ -1139,6 +1146,7 @@ const _glassIcons = <int, (IconData, IconData)>{
   6: (CupertinoIcons.creditcard, CupertinoIcons.creditcard_fill),
   7: (CupertinoIcons.graph_square, CupertinoIcons.graph_square_fill),
   8: (CupertinoIcons.bag, CupertinoIcons.bag_fill),
+  9: (CupertinoIcons.square_stack_3d_up, CupertinoIcons.square_stack_3d_up_fill),
 };
 
 /// The selected-tab droplet. It glides to the new tab on a smooth ease —
@@ -1345,6 +1353,7 @@ class _TopBar extends ConsumerWidget implements PreferredSizeWidget {
     'Accounts', // 6
     'Stats', // 7
     'Payees', // 8
+    'Categories', // 9
   ];
 
   /// The tab's title — the Dashboard tab takes the name of a mode (a trip)
@@ -1504,6 +1513,28 @@ class _TopBar extends ConsumerWidget implements PreferredSizeWidget {
                 ref.read(moreSearchQueryProvider.notifier).state = '';
               }
             },
+          ),
+          const SizedBox(width: 4),
+        ];
+      case 9: // Categories
+        return [
+          _TonalIconButton(
+            tooltip: tr('Templates'),
+            icon: const AppIcon(Icons.dashboard_customize_outlined),
+            onPressed: () => _pushFromTop(context, '/more/categories/templates'),
+          ),
+          const SizedBox(width: 4),
+          _TonalIconButton(
+            tooltip: tr('Archived'),
+            icon: const AppIcon(Icons.inventory_2_outlined),
+            onPressed: () => _pushFromTop(context, '/more/categories/archived'),
+          ),
+          const SizedBox(width: 4),
+          _TonalIconButton(
+            tooltip: tr('Add category'),
+            icon: const AppIcon(Icons.add_rounded),
+            onPressed: () =>
+                ref.read(categoryAddSignalProvider.notifier).state++,
           ),
           const SizedBox(width: 4),
         ];

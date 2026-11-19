@@ -8,5 +8,6 @@
     android:initialLayout="@layout/balance_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_preview_balance"
     android:description="@string/widget_description">
 </appwidget-provider>

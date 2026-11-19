@@ -2617,20 +2617,57 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           }
         },
         child: Scaffold(
+          backgroundColor: Colors.transparent,
           resizeToAvoidBottomInset: false,
-          body: _loading
-              ? const Center(child: CircularProgressIndicator())
-              : SafeArea(
-                  child: _step == _AddScreenStep.operation
-                      ? _buildOperationStep(theme, accountMap, categoryMap)
-                      : _buildKeypadStep(
-                          theme,
-                          accountMap,
-                          categoryMap,
-                          txCurrency,
-                          amount,
-                        ),
+          body: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.of(context).pop(),
                 ),
+              ),
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: 640,
+                    maxHeight: MediaQuery.sizeOf(context).height * 0.90,
+                  ),
+                  child: Material(
+                    color: theme.colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 12,
+                    child: SafeArea(
+                      top: false,
+                      bottom: true,
+                      child: _loading
+                          ? const SizedBox(
+                              height: 200,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          : (_step == _AddScreenStep.operation
+                              ? _buildOperationStep(
+                                  theme,
+                                  accountMap,
+                                  categoryMap,
+                                )
+                              : _buildKeypadStep(
+                                  theme,
+                                  accountMap,
+                                  categoryMap,
+                                  txCurrency,
+                                  amount,
+                                )),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2641,66 +2678,79 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
     Map<int, AccountRow> accountMap,
     Map<int, CategoryRow> categoryMap,
   ) {
-    return Column(
-      children: [
-        Center(
-          child: Container(
-            width: 36,
-            height: 4,
-            margin: const EdgeInsets.only(top: 10, bottom: 6),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-              borderRadius: BorderRadius.circular(2),
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final sheetHeight = (screenHeight * 0.60).clamp(420.0, 620.0);
+    return SizedBox(
+      height: sheetHeight,
+      child: Column(
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onVerticalDragEnd: (details) {
+              if ((details.primaryVelocity ?? 0) > 200) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(top: 10, bottom: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Align(
-                alignment: Alignment.center,
-                child: Text(
-                  tr('Add an operation'),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    tr('Add an operation'),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const AppIcon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(context).maybePop(),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: IconButton(
+                    icon: const AppIcon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-                width: 1,
-              ),
+              ],
             ),
           ),
-          child: Row(
-            children: [
-              _operationTabButton(theme, tr('Money in'), _OperationTab.moneyIn),
-              _operationTabButton(theme, tr('Money out'), _OperationTab.moneyOut),
-              _operationTabButton(theme, tr('Transfer'), _OperationTab.transfer),
-            ],
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                _operationTabButton(theme, tr('Money in'), _OperationTab.moneyIn),
+                _operationTabButton(theme, tr('Money out'), _OperationTab.moneyOut),
+                _operationTabButton(theme, tr('Transfer'), _OperationTab.transfer),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Expanded(
-          child: _buildOperationGrid(theme, accountMap, categoryMap),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Expanded(
+            child: _buildOperationGrid(theme, accountMap, categoryMap),
+          ),
+        ],
+      ),
     );
   }
 
@@ -3044,19 +3094,28 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
       behavior: HitTestBehavior.opaque,
       onTap: () => FocusScope.of(context).unfocus(),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            padding: const EdgeInsets.only(top: 8, bottom: 2),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(2),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onVerticalDragEnd: (details) {
+                    if ((details.primaryVelocity ?? 0) > 200) {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
                 ),
@@ -3069,14 +3128,14 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                       tooltip: tr('Close'),
-                      onPressed: () => Navigator.of(context).maybePop(),
+                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          // Top date bar: < Today, November 18 >
+          // Top date bar: < Today, 18 November >
           _dateBar(theme),
           // Side-by-side cards: Account & Category
           Padding(
@@ -3133,9 +3192,12 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
               ),
             ),
           _selectedTagsChips(),
-          const Spacer(),
+          const SizedBox(height: 6),
           if (activeCards.isNotEmpty)
-            Flexible(
+            ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.35,
+              ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                 child: Column(
@@ -3148,7 +3210,7 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
           // Action toolbar: 📎 💬 🏷️
           _actionToolbar(theme),
           // Calculator Keypad
-          if (!_textFieldFocused && !_desktop)
+          if (!_textFieldFocused)
             Padding(
               padding:
                   const EdgeInsets.fromLTRB(12, 4, 12, 8).plusNavBar(context),
@@ -3236,14 +3298,13 @@ class _AddTransactionScreenState extends ConsumerState<AddTransactionScreen> {
         d.day == tomorrow.day;
 
     final datePart = isToday
-        ? 'Today, ${DateFormat('MMMM d').format(d)}'
+        ? 'Today, ${DateFormat('d MMMM').format(d)}'
         : isYesterday
-        ? 'Yesterday, ${DateFormat('MMMM d').format(d)}'
+        ? 'Yesterday, ${DateFormat('d MMMM').format(d)}'
         : isTomorrow
-        ? 'Tomorrow, ${DateFormat('MMMM d').format(d)}'
-        : DateFormat('d MMM yyyy').format(d);
-    final timePart = DateFormat('h:mm a').format(d);
-    return '$datePart, $timePart';
+        ? 'Tomorrow, ${DateFormat('d MMMM').format(d)}'
+        : DateFormat('d MMMM yyyy').format(d);
+    return datePart;
   }
 
   Widget _sideBySideCards(

@@ -113,6 +113,7 @@
 
         <!-- The home-screen Balance widget. -->
         <receiver android:name=".BalanceWidgetProvider"
+            android:label="@string/widget_balance_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
@@ -123,6 +124,7 @@
 
         <!-- The home-screen Budgets widget. -->
         <receiver android:name=".BudgetWidgetProvider"
+            android:label="@string/widget_budgets_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
@@ -133,6 +135,7 @@
 
         <!-- The home-screen Quick Add widget. -->
         <receiver android:name=".QuickAddWidgetProvider"
+            android:label="@string/widget_quick_add_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
@@ -143,12 +146,35 @@
 
         <!-- The home-screen This Month widget. -->
         <receiver android:name=".MonthSummaryWidgetProvider"
+            android:label="@string/widget_month_label"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
             </intent-filter>
             <meta-data android:name="android.appwidget.provider"
                 android:resource="@xml/month_summary_widget_info"/>
+        </receiver>
+
+        <!-- The home-screen Goals & Loans widget. -->
+        <receiver android:name=".GoalsWidgetProvider"
+            android:label="@string/widget_goals_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/goals_widget_info"/>
+        </receiver>
+
+        <!-- The home-screen Spending Extremes (Min & Max Spent) widget. -->
+        <receiver android:name=".SpendingExtremesWidgetProvider"
+            android:label="@string/widget_extremes_label"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider"
+                android:resource="@xml/spending_extremes_widget_info"/>
         </receiver>
 
         <!-- Share → WhatsApp / Messages: the statement file handed straight

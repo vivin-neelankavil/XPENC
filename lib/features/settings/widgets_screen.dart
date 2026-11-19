@@ -66,7 +66,29 @@ class WidgetsScreen extends ConsumerWidget {
             widget: HomeScreenWidget.monthSummary,
             icon: Icons.calendar_month_outlined,
             title: tr('This Month'),
-            description: tr("This month's money in and out totals, side by side."),
+            description: tr(
+              "This month's money in and out totals, side by side with total balance.",
+            ),
+            canPin: canPin,
+          ),
+          const SizedBox(height: 12),
+          _WidgetCard(
+            widget: HomeScreenWidget.goals,
+            icon: Icons.savings_outlined,
+            title: tr('Goals & Loans'),
+            description: tr(
+              'Your top savings goals and loan balances, with progress bars at a glance.',
+            ),
+            canPin: canPin,
+          ),
+          const SizedBox(height: 12),
+          _WidgetCard(
+            widget: HomeScreenWidget.spendingExtremes,
+            icon: Icons.compare_arrows_rounded,
+            title: tr('Min & Max Spent'),
+            description: tr(
+              'Your lowest and highest expenses with date and category, side by side.',
+            ),
             canPin: canPin,
           ),
         ],

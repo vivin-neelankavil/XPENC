@@ -225,6 +225,26 @@ class _GoalCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (!account.includeInTotalMoney) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          tr('Not in total'),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (progress.reached)
                       AppIcon(
                         Icons.check_circle_rounded,
@@ -395,6 +415,26 @@ class _LoanCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    if (!account.includeInTotalMoney) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          tr('Not in total'),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
                     if (loan.outstanding.isZero)
                       AppIcon(
                         Icons.check_circle_rounded,
@@ -557,6 +597,7 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
   int? _sourceAccountId;
   DateTime? _targetDate;
   int? _categoryId;
+  late bool _includeInTotalMoney;
   bool _submitting = false;
 
   bool get _isEdit => widget.existing != null;
@@ -578,6 +619,7 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
     _iconKey = existing?.account.iconKey ?? _iconKeys.first;
     _targetDate = existing?.detail.targetDate;
     _categoryId = existing?.detail.categoryId;
+    _includeInTotalMoney = existing?.account.includeInTotalMoney ?? true;
   }
 
   @override
@@ -648,6 +690,7 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
           iconKey: _iconKey,
           categoryId: _categoryId,
           notes: notes.isEmpty ? null : notes,
+          includeInTotalMoney: _includeInTotalMoney,
         );
       } else {
         final goalAccountId = await db.addGoal(
@@ -658,6 +701,7 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
           iconKey: _iconKey,
           categoryId: _categoryId,
           notes: notes.isEmpty ? null : notes,
+          includeInTotalMoney: _includeInTotalMoney,
         );
         if (_fromExistingAccount && mounted) {
           await _fundFromSourceAccount(db, goalAccountId);
@@ -843,6 +887,16 @@ class _GoalEditorSheetState extends ConsumerState<_GoalEditorSheet> {
               ),
             ),
             const SizedBox(height: 12),
+            AppSwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Tr('Show in total money'),
+              subtitle: const Tr(
+                'Include this goal in Total money. It will always remain in Net worth.',
+              ),
+              value: _includeInTotalMoney,
+              onChanged: (v) => setState(() => _includeInTotalMoney = v),
+            ),
+            const SizedBox(height: 12),
             _fieldLabel(theme, tr('Colour')),
             const SizedBox(height: 12),
             Wrap(
@@ -977,6 +1031,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
   late String _iconKey;
   int? _categoryId;
   late DateTime _startDate;
+  late bool _includeInTotalMoney;
   bool _submitting = false;
 
   /// New loans only: also create a monthly transfer Auto rule for the EMI, so
@@ -1009,6 +1064,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
     _colorValue = existing?.account.colorValue ?? _presetColors.first;
     _iconKey = existing?.account.iconKey ?? _iconKeys.first;
     _categoryId = existing?.detail.categoryId;
+    _includeInTotalMoney = existing?.account.includeInTotalMoney ?? true;
     _rateController.addListener(_onProjectionInputsChanged);
     _tenureController.addListener(_onProjectionInputsChanged);
     _principalController.addListener(_onProjectionInputsChanged);
@@ -1212,6 +1268,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
           interestRatePct: rate,
           tenureMonths: tenure,
           startDate: rate == null ? null : _startDate,
+          includeInTotalMoney: _includeInTotalMoney,
         );
       } else {
         await db.addLoan(
@@ -1226,6 +1283,7 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
           startDate: rate == null ? null : _startDate,
           autoPayFromAccountId: wantsAutoPay ? _autoPayFromId : null,
           autoPayStartsOn: wantsAutoPay ? autoPayStart : null,
+          includeInTotalMoney: _includeInTotalMoney,
         );
       }
       // A backdated auto-pay start would otherwise sit unposted until the
@@ -1424,6 +1482,16 @@ class _LoanEditorSheetState extends ConsumerState<_LoanEditorSheet> {
                   DropdownMenuItem(value: c.id, child: Text(c.name)),
               ],
               onChanged: (v) => setState(() => _categoryId = v),
+            ),
+            const SizedBox(height: 12),
+            AppSwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Tr('Show in total money'),
+              subtitle: const Tr(
+                'Include this loan in Total money. It will always remain in Net worth.',
+              ),
+              value: _includeInTotalMoney,
+              onChanged: (v) => setState(() => _includeInTotalMoney = v),
             ),
             const SizedBox(height: 16),
             _fieldLabel(theme, tr('Colour')),
@@ -1639,14 +1707,12 @@ class _SourceAccountPicker extends ConsumerWidget {
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
-/// Opens the goal editor for an existing goal — used by the detail screen's
-/// Edit action.
-void openGoalEditor(BuildContext context, GoalProgress existing) {
+/// Opens the goal editor for a new or existing goal.
+void openGoalEditor(BuildContext context, [GoalProgress? existing]) {
   _openGoalEditor(context, existing: existing);
 }
 
-/// Opens the loan editor for an existing loan — used by the loan detail
-/// screen's Edit action.
-void openLoanEditor(BuildContext context, LoanProgress existing) {
+/// Opens the loan editor for a new or existing loan.
+void openLoanEditor(BuildContext context, [LoanProgress? existing]) {
   _openLoanEditor(context, existing: existing);
 }

@@ -44,12 +44,14 @@ class _AddAccountSheetState extends ConsumerState<AddAccountSheet> {
   final _last4Controller = TextEditingController();
   final _last4Focus = FocusNode();
   final _amountController = AmountKeypadController();
+  final _noteController = TextEditingController();
 
   AccountType _type = AccountType.cash;
   CardKind _cardKind = CardKind.credit;
   int? _linkedAccountId;
   int _colorValue = accountPresetColors.first;
   String _iconKey = 'cash';
+  bool _includeInTotalMoney = true;
   bool _submitting = false;
 
   /// Null = parent currency (the default for every account). Never offered
@@ -66,6 +68,7 @@ class _AddAccountSheetState extends ConsumerState<AddAccountSheet> {
     _last4Controller.dispose();
     _last4Focus.dispose();
     _amountController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -145,6 +148,10 @@ class _AddAccountSheetState extends ConsumerState<AddAccountSheet> {
             iconKey: _iconKey,
             openingBalance: openingBalance,
             currencyCode: _isDebitCard ? null : _currencyCode,
+            includeInTotalMoney: _isDebitCard ? true : _includeInTotalMoney,
+            note: _noteController.text.trim().isEmpty
+                ? null
+                : _noteController.text.trim(),
           );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -292,6 +299,36 @@ class _AddAccountSheetState extends ConsumerState<AddAccountSheet> {
               onChanged: (k) => setState(() => _iconKey = k),
             ),
             const SizedBox(height: 28),
+
+            if (!_isDebitCard) ...[
+              _fieldLabel(theme, tr('Total money & Net worth')),
+              const SizedBox(height: 4),
+              AppSwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: _includeInTotalMoney,
+                onChanged: (v) => setState(() => _includeInTotalMoney = v),
+                title: const Tr('Include in Total money'),
+                subtitle: const Tr(
+                  'Turn off to exclude this account from Total money. '
+                  'It will still be included in your Net Worth.',
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+
+            _fieldLabel(theme, tr('Note')),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _noteController,
+              minLines: 2,
+              maxLines: 4,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: InputDecoration(
+                hintText: tr('Add notes (e.g. locker code, account memo)...'),
+                alignLabelWithHint: true,
+              ),
+            ),
+            const SizedBox(height: 24),
 
             FilledButton(
               onPressed: _submitting ? null : _submit,

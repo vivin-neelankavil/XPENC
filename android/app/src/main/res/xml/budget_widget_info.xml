@@ -8,5 +8,6 @@
     android:initialLayout="@layout/budget_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
+    android:previewImage="@drawable/widget_preview_budget"
     android:description="@string/widget_budgets_description">
 </appwidget-provider>

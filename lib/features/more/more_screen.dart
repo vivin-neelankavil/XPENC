@@ -67,9 +67,9 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
 
     // Basic mode doesn't track net worth — the Accounts tile falls back to
     // a plain description instead of a total that mode has no concept of.
-    final netWorth = appMode == AppMode.basic
+    final totalMoney = appMode == AppMode.basic
         ? null
-        : ref.watch(netWorthProvider).valueOrNull ?? const Money.zero();
+        : ref.watch(totalMoneyProvider).valueOrNull ?? const Money.zero();
 
     final rules = ref.watch(recurringRulesProvider).valueOrNull ?? const [];
     final activeRuleCount = rules.where((r) => r.isActive).length;
@@ -101,9 +101,9 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
           tr('Accounts'),
           route: '/more/accounts',
           module: 'accounts',
-          subtitle: netWorth == null
+          subtitle: totalMoney == null
               ? tr('Manage where your money is')
-              : tr('Total money: {0}', [MoneyFormat.compact(netWorth)]),
+              : tr('Total money: {0}', [MoneyFormat.compact(totalMoney)]),
         ),
         _Item(
           Icons.receipt_long_outlined,
@@ -137,13 +137,6 @@ class _MoreScreenState extends ConsumerState<MoreScreen> {
             subtitle:
                 tr('{0} unassigned', [MoneyFormat.compact(ref.watch(readyToAssignProvider))]),
           ),
-        _Item(
-          Icons.savings_outlined,
-          tr('Goals & Loans'),
-          route: '/more/goals',
-          subtitle: tr('Savings goals and loans in one place'),
-          module: 'goals',
-        ),
         _Item(
           Icons.autorenew_rounded,
           tr('Auto'),
